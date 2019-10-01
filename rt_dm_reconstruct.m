@@ -1,21 +1,45 @@
-function [rho, rinfo] = rt_dm_reconstruct(k0, M0, n0, r)
-%RECONSTRUCT Summary of this function goes here
-%   Detailed explanation goes here
+function [rho, rinfo] = rt_dm_reconstruct(clicks, proto, varargin)
+%RT_DM_RECONSTRUCT TODO
+%   TODO
+
+p = inputParser;
+p.KeepUnmatched = true;
+addRequired(p, 'clicks');
+addRequired(p, 'proto');
+addOptional(p, 'nshots', 'sum');
+addParameter(p, 'rank', 'auto');
+addParameter(p, 'normalize', true);
+addParameter(p, 'pinvOnly', false);
+addParameter(p, 'significanceLevel', 0.5);
+addParameter(p, 'display', 'none');
+parse(p,clicks,proto,varargin{:});
+opt = p.Results;
 
 % Recursive method for automatic rank estimation
-s = size(k0,1);
-if (ischar(r) && strcmpi(r, 'auto')) || r == 0
-    [rho, rinfo] = rt_dm_reconstruct(k0,M0,n0,1);
-    for r = 2:s
-        [rho_n, rinfo_n] = rt_dm_reconstruct(k0,M0,n0,r);
-        if rinfo_n.pval < rinfo.pval
+s = size(proto{1},1);
+if ischar(opt.rank) && strcmpi(opt.rank, 'auto')
+    [rho_r, rinfo_r] = deal(cell(1,s));
+    for i = 1:s
+        r = i;
+        [rho_r{r}, rinfo_r{r}] = rt_dm_reconstruct(clicks, proto, opt.nshots, 'Rank', r);
+        if isnan(rinfo_r{r}.pval) || rinfo_r{r}.pval >= opt.significanceLevel
+            break;
+        elseif r > 1 && rinfo_r{r}.pval < rinfo_r{r-1}.pval
+            r = r - 1;
             break;
         end
-        rho = rho_n;
-        rinfo = rinfo_n;
     end
+    rho = rho_r{r};
+    rinfo = rinfo_r{r};
+    rinfo.rho_r = rho_r(1:r);
+    rinfo.info_r = rinfo_r(1:r);
     return;
 end
+
+if ~iscell(proto)
+    proto = num2cell(proto,[1 2]);
+end
+rt_proto_check(proto, opt.nshots);
 
 % Params
 eps = 1e-10;
@@ -23,36 +47,39 @@ N_max = 100000;
 alp = 0.5;
 
 % First approximation by pseudo-inverse
-[M,n,k] = rt_vectorize_proto(M0,n0,k0);
-[rho, B] = rt_dm_pinv(k, M, n, r);
-[U,D] = svd(rho);
-c = U*sqrt(D);
-c = c(:,1:r);
-c = c / sqrt(trace(c'*c));
+[M, n, k] = rt_data_join(proto, opt.nshots, clicks);
+[~, c] = rt_pinv(M, k./n, opt.rank);
+B = rt_meas_matrix(M);
 
-s = size(rho,1);
-I = inv(reshape(B'*n, s, s));
+i = 0;
+if ~opt.pinvOnly
+    s = size(c,1);
+    Ir = inv(reshape(B'*n, s, s));
 
-% Iterations
-for i = 1:N_max
-    cp = c;
-    c = alp*get_new_value(c, k, B, I, s) + (1-alp)*cp;
-    dc = norm(cp-c);
-    if (dc < eps)
-        break;
+    % Iterations
+    for i = 1:N_max
+        cp = c;
+        c = alp*get_new_value(c, k, B, Ir, s) + (1-alp)*cp;
+        dc = norm(cp-c);
+        if (dc < eps)
+            break;
+        end
     end
 end
 
 rho = c*c';
-rho = rho / trace(rho);
-[rinfo.pval, rinfo.chi2] = rt_dm_significance(rho, M0, n0, k0);
+[rinfo.pval, rinfo.chi2, rinfo.df] = rt_significance(rho, proto, opt.nshots, clicks, opt.rank, false);
 rinfo.iter = i;
-rinfo.r = r;
+rinfo.rank = opt.rank;
+if opt.normalize
+    rho = rho / trace(rho);
 end
 
-function c = get_new_value(c, k, B, I, s)
+end
+
+function c = get_new_value(c, k, B, Ir, s)
 rho = c*c';
 a = k./(B*rho(:));
 J = reshape(B'*a, s, s);
-c = I*J*c;
+c = Ir*J*c;
 end

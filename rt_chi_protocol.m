@@ -20,11 +20,11 @@ function [M, P0, M0] = rt_chi_protocol(P0, M0, N)
 %   M0 - measurement operators for the state at the output of the gate
 
 if ischar(P0)
-    P0 = rt_protocol_preparation(P0, N);
+    P0 = rt_proto_preparation(P0, N);
 end
 
 if ischar(M0)
-    M0 = rt_protocol_measurement(M0, N);
+    M0 = rt_proto_measurement(M0, N);
 end
 
 mp = size(P0,3);
@@ -33,7 +33,7 @@ mm = length(M0);
 M = cell(1,mp*mm);
 for i = 1:mp
     for j = 1:mm        
-        M{(i-1)*mm + j} = superkron(conj(P0(:,:,i)), M0{j});
+        M{(i-1)*mm + j} = rt_kron3d(conj(P0(:,:,i)), M0{j});
     end
 end
 

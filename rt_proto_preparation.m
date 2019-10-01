@@ -1,4 +1,4 @@
-function P = rt_protocol_preparation(type, N, Ep)
+function P = rt_proto_preparation(type, N)
 %rt_PROTOCOL_PREPARATION Generates preparation protocol
 %   INPUT:
 %   type - protocol type
@@ -23,18 +23,9 @@ else
     error('Unknown preparation protocol');
 end
 
-if nargin < 3
-    Ep = cell(1,N);
-    [Ep{:}] = deal(eye(2));
-end
-
 P = 1;
 for j = 1:N
-    Ptmp = P0;
-    for k = 1:size(Ptmp,3)
-        Ptmp(:,:,k) = rt_kraus(Ptmp(:,:,k), Ep{j});
-    end
-    P = superkron(P, Ptmp);
+    P = rt_kron3d(P, P0);
 end
 
 end

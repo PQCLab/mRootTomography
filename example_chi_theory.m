@@ -1,31 +1,33 @@
 clc;
 clear;
 
-N = 2;
+N = 1;
 s = 2^N;
-r = 4;
-E = kraus_matrices('random', [s,r]);
-chi = kraus2chi(E);
+s2 = s^2;
+r = 3;
+
+U = rt_randunitary(s*r);
+e = reshape(permute(reshape(transpose(U(:,1:s)),[s,s,r]),[2,1,3]),[s2,r]);
+chi = e*e';
 
 N_exp = 250;
-n = ones(1,(6*3)^N)*2048;
-[M, P0, M0] = rt_chi_protocol('cube', 'pauli', N);
+proto = rt_chi_protocol('cube', 'pauli', N);
+nshots = rt_nshots_devide(1e6, length(proto));
 
 F = zeros(N_exp, 1);
-SL = zeros(N_exp, 1);
+Pval = zeros(N_exp, 1);
 for i = 1:N_exp
-    disp(i);
+    fprintf('Experiment %d/%d\n', i, N_exp);
     
-    k = rt_chi_simulate(chi, P0, M0, n);
-    chir = rt_chi_reconstruct(k,M,n,r);
-    
-    F(i) = fidelityB(chir, chi);
-    SL(i) = rt_chi_significance(chir,M,n,k);
+    clicks = rt_simulate(chi, proto, nshots);
+    [chir, rinfo] = rt_chi_reconstruct(clicks,proto,nshots,'Rank',r);
+    Pval(i) = rinfo.pval;
+    F(i) = rt_fidelity(chir, chi);
 end
 
 %%
 figure;
-histogram(SL);
+histogram(Pval);
 
 %%
 figure;
@@ -34,7 +36,7 @@ hold on;
 xmax = h.BinLimits(2);
 dx = xmax / 100;
 x = 0:dx:xmax;
-d = rt_chi_theory(chi,M,n);
+d = rt_chi_theory(chi,proto,nshots);
 P = chi2pdf_general(x,d);
 N_dist = P * h.BinWidth * N_exp;
 plot(x, N_dist, 'LineWidth', 2);

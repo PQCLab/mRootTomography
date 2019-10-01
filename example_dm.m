@@ -4,11 +4,11 @@ clear;
 N = 1;
 s = 2^N;
 r = 1;
-rho = randstate(s, 'mixed', r);
+rho = rt_randstate(s, 'mixed', r);
 
-n = 1e2;
-M = rt_protocol_measurement('pauli', N);
-[k,n] = rt_dm_simulate(rho, M, n);
+nshots = 1e2;
+proto = rt_protocol_measurement('pauli', N);
+clicks = rt_dm_simulate(rho, proto, nshots);
 
-[rhor, rinfo] = rt_dm_reconstruct(k,M,n,r);
-fidelityB(rho, rhor)
+[rhor, rinfo] = rt_dm_reconstruct(clicks,proto,nshots,r);
+rt_fidelity(rho, rhor)

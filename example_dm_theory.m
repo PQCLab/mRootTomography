@@ -3,36 +3,27 @@ clear;
 
 N = 2;
 s = 2^N;
-r = 1;
-% rho = randstate(s, 'mixed', r);
-% rho = genstate('w', 2, true);
-% rho = genstate('ghz', 4, true);
-c = [1;0;0;exp(1j*pi/4)]/sqrt(2); rho = c*c';
+r = 3;
+rho = rt_randstate(s, 'mixed', r);
 
 N_exp = 500;
-M = rt_protocol_measurement('tetra', N);
-n = ones(1,length(M))*1e3;
+proto = rt_proto_measurement('pauli', N, true);
+nshots = rt_nshots_devide(1e3, length(proto));
 
-F = zeros(N_exp, 1);
-SL = zeros(N_exp, 1);
-Iter = zeros(N_exp, 1);
+F = zeros(N_exp,1);
+Pval = zeros(N_exp,1);
 for i = 1:N_exp
-    disp(i);
+    fprintf('Experiment %d/%d\n', i, N_exp);
     
-    k = rt_dm_simulate(rho, M, n);
-    [rhor, rinfo] = rt_dm_reconstruct(k,M,n,r);
-    Iter(i) = rinfo.iter;
-    SL(i) = double(rinfo.pval);
-    F(i) = fidelityB(rhor, rho);
+    clicks = rt_simulate(rho, proto, nshots);
+    [rhor, rinfo] = rt_dm_reconstruct(clicks,proto,nshots,'Rank',r);
+    Pval(i) = double(rinfo.pval);
+    F(i) = rt_fidelity(rhor, rho);
 end
 
 %%
 figure;
-histogram(Iter);
-
-%%
-figure;
-histogram(SL);
+histogram(Pval);
 
 %%
 figure;
@@ -41,7 +32,7 @@ hold on;
 xmax = h.BinLimits(2);
 dx = xmax / 100;
 x = 0:dx:xmax;
-d = rt_dm_theory(rho,M,n);
+d = rt_dm_theory(rho,proto,nshots,r);
 P = chi2pdf_general(x,d);
 N_dist = P * h.BinWidth * N_exp;
 plot(x, N_dist, 'LineWidth', 2);
