@@ -17,7 +17,7 @@ To install the library clone the repository or download and unpack zip-archive. 
 
 ### Data format
 
-Quantum tomography of a state ![rho](https://latex.codecogs.com/gif.download?%5Crho) consists of a set of complementary _experiments_. In each experiment one perform a measurement that has several outcomes described by a set of measurement operators ~[M_k](https://latex.codecogs.com/gif.download?M_k) such that the probability to  get _k_-th result is ![p_k](https://latex.codecogs.com/gif.download?p_k%3D%5Ctext%7BTr%7D%28%5Crho%20M_k%29). The measurement _protocol_ describes the set of experiments and corresponding measurement operators matrices. Each experiment is repeated many times resulting in some number of outcomes for each measurement operator.
+Quantum tomography of a state ![rho](https://latex.codecogs.com/svg.latex?%5Crho) consists of a set of complementary _experiments_. In each experiment one perform a measurement that has several outcomes described by a set of measurement operators ![M_k](https://latex.codecogs.com/svg.latex?M_k) such that the probability to  get _k_-th result is ![p_k](https://latex.codecogs.com/svg.latex?p_k%3D%5Ctext%7BTr%7D%28%5Crho%20M_k%29). The measurement _protocol_ describes the set of experiments and corresponding measurement operators matrices. Each experiment is repeated many times resulting in some number of outcomes for each measurement operator.
 ```
 proto{j}(:,:,k) % k-th measurement matrix for j-th experiment
 clicks{j}(k,1) % number of k-th outcome observations in j-th experiment
@@ -64,7 +64,7 @@ One can theoretically estimate reconstruction fidelity for the desired measureme
 ```
 d = rt_dm_theory(dm_expected,proto,nshots)
 ```
-The distribution of infidelity has the form of a generalized chi-squared distribution: ![1-F](https://latex.codecogs.com/gif.download?1-F%20%5Csim%20%5Csum_j%7Bd_j%20%5Cxi_j%5E2%7D),  where each ![xi_j](https://latex.codecogs.com/gif.download?%5Cxi_j) is independent and has a normal distribution with zero mean and unit variance. The following script plots theoretical distribution and shows the value of infidelity for a single tomography experiment.
+The distribution of infidelity has the form of a generalized chi-squared distribution: ![1-F](https://latex.codecogs.com/svg.latex?%5Cinline%201-F%20%5Csim%20%5Csum_j%7Bd_j%20%5Cxi_j%5E2%7D),  where each ![xi_j](https://latex.codecogs.com/svg.latex?%5Cxi_j) is independent and has a normal distribution with zero mean and unit variance. The following script plots theoretical distribution and shows the value of infidelity for a single tomography experiment.
 
 ```
 dm_expected = [0.5, 0.45; 0.45, 0.5];
