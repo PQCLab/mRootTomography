@@ -1,7 +1,55 @@
-function [rho, rinfo] = rt_dm_reconstruct(clicks, proto, varargin)
-%RT_DM_RECONSTRUCT TODO
-%   TODO
-
+function [dm, rinfo] = rt_dm_reconstruct(clicks, proto, varargin)
+%RT_DM_RECONSTRUCT Performs the quantum state reconstruction using root
+%approach and maximum likelihood. Detail explanation of the algorithm could
+%be found in the paper [Borganov Yu. I., JETP 108(6) 2009] 
+%
+%   dm = rt_dm_reconstruct(clicks,proto) reconstructs density matrix by
+%   the set of clicks obtained in each measurement experiment defined by
+%   protocol proto. clicks{j} - column-vector with the numbers of observed
+%   events in j-th experiment. proto{j} - 3D-array of measurement operators.
+%   size(proto{j},3) should be equal to length(click{j}) for every j.
+%
+%   dm = rt_dm_reconstruct(clicks,proto,nshots) specifies the row-vector
+%   nshots - row-vector of the numbers of measurements. nshots(j) - number
+%   of measurements for j-th experiment. length(nshots) should be equal to
+%   length(proto) and length(clicks). If nshots = 'sum' then for j-th
+%   experiment number of measurements is sum(clicks{j}). Default: 'sum'
+%
+%   dm = rt_dm_reconstruct( ___ ,Name,Value) specifies additional parameters
+%   for reconstruction. For example, rt_dm_reconstruct(clicks,proto,'Rank',1)
+%   reconstructs a pure (rank-1) quantum state. Available parameters:
+%       • Rank (integer) - rank of the quantum state model. 'auto'
+%       indicates that rank should be calculated automatically using
+%       chi-squared test. Default: 'auto'
+%       • Normalize (boolean) - normalize output density matrix. Default: true
+%       • PinvOnly (boolean) - reconstruct density matrix by the
+%       pseudo-inversion only. Default: false
+%       • SignificanceLevel (float) - significance level for the
+%       automatic rank definition (used when Rank equal to 'auto').
+%       Default: 0.005
+%       • Alpha (float) - convergence speed parameter. At each step old state
+%       matrix C becomes Alpha*CN + (1-Alpha)*C, where CN is a new state matrix.
+%       Default: 0.5
+%       • Tol (float) - termination tolerance on state matrix. Default: 1e-8
+%       • MaxIter (integet) - maximum number of iterations. Default: 1e6
+%       • Display (bool) - display iterations. Default: false
+%
+%   [dm,rinfo] = rt_dm_reconstruct( ___ ) also returns additional
+%   reconstruction informations
+%
+%OUTPUT:
+%   dm - density matrix
+%   rinfo - structure array with the following fields:
+%       • iter - number of iteration taken to find likelihood maximum
+%       • rank - rank of the quantum state model
+%       • pval, chi2, df - p-value, chi-squared value and number of degrees
+%        of freedom of the statistical chi-squared test
+%       • dm_r, info_r - cell arrays of density matrices and reconstruction
+%       information for every value of rank below optimal one (defined if
+%       parameter 'Rank' is set to 'auto')
+%
+%Author: PQCLab
+%Website: https://github.com/PQCLab/RootTomography
 p = inputParser;
 p.KeepUnmatched = true;
 addRequired(p, 'clicks');
@@ -10,44 +58,66 @@ addOptional(p, 'nshots', 'sum');
 addParameter(p, 'rank', 'auto');
 addParameter(p, 'normalize', true);
 addParameter(p, 'pinvOnly', false);
-addParameter(p, 'significanceLevel', 0.5);
-addParameter(p, 'display', 'none');
+addParameter(p, 'significanceLevel', 0.005, @(x)x>0&&x<1);
+addParameter(p, 'alpha', 0.5, @(x)x>0&&x<=1);
+addParameter(p, 'tol', 1e-8, @(x)x>0);
+addParameter(p, 'maxIter', 1e6, @(x)x>0);
+addParameter(p, 'display', false);
 parse(p,clicks,proto,varargin{:});
 opt = p.Results;
 
 % Recursive method for automatic rank estimation
 s = size(proto{1},1);
 if ischar(opt.rank) && strcmpi(opt.rank, 'auto')
-    [rho_r, rinfo_r] = deal(cell(1,s));
+    if opt.display
+        fprintf('=== Automatic rank estimation ===\n');
+    end
+    pvalRed = false;
+    [dm_r, rinfo_r] = deal(cell(1,s));
     for i = 1:s
         r = i;
-        [rho_r{r}, rinfo_r{r}] = rt_dm_reconstruct(clicks, proto, opt.nshots, 'Rank', r);
+        if opt.display
+            fprintf('Try rank %d\n', r);
+        end
+        [dm_r{r}, rinfo_r{r}] = rt_dm_reconstruct(clicks, proto, varargin{:}, 'Rank', r);
         if isnan(rinfo_r{r}.pval) || rinfo_r{r}.pval >= opt.significanceLevel
             break;
         elseif r > 1 && rinfo_r{r}.pval < rinfo_r{r-1}.pval
+            pvalRed = true;
             r = r - 1;
             break;
         end
     end
-    rho = rho_r{r};
+    if opt.display
+        if rinfo_r{r}.pval >= opt.significanceLevel
+            fprintf('Rank %d is statistically significant at significance level %s. Procedure terminated.\n', r, num2str(opt.significanceLevel));
+        elseif pvalRed
+            fprintf('P-value is maximal (%s) for rank %d. Procedure terminated.\n', num2str(rinfo_r{r}.pval), r);
+        else
+            fprintf('Failed to determine optimal rank. Maximal rank %d is taken.\n', r);
+        end
+    end
+    dm = dm_r{r};
     rinfo = rinfo_r{r};
-    rinfo.rho_r = rho_r(1:r);
+    rinfo.dm_r = dm_r(1:r);
     rinfo.info_r = rinfo_r(1:r);
     return;
 end
 
-if ~iscell(proto)
-    proto = num2cell(proto,[1 2]);
-end
-rt_proto_check(proto, opt.nshots);
+nshots = opt.nshots;
+[proto,nshots] = rt_proto_check(proto,nshots,clicks);
 
 % Params
-eps = 1e-10;
-N_max = 100000;
-alp = 0.5;
+dispfreq = 50;
+eps = opt.tol;
+N_max = opt.maxIter;
+alp = opt.alpha;
 
 % First approximation by pseudo-inverse
-[M, n, k] = rt_data_join(proto, opt.nshots, clicks);
+if opt.display
+    h = rt_fprintreplace('Pseudi-inversion...');
+end
+[M, n, k] = rt_data_join(proto, nshots, clicks);
 [~, c] = rt_pinv(M, k./n, opt.rank);
 B = rt_meas_matrix(M);
 
@@ -55,24 +125,30 @@ i = 0;
 if ~opt.pinvOnly
     s = size(c,1);
     Ir = inv(reshape(B'*n, s, s));
-
-    % Iterations
     for i = 1:N_max
         cp = c;
         c = alp*get_new_value(c, k, B, Ir, s) + (1-alp)*cp;
         dc = norm(cp-c);
-        if (dc < eps)
+        stopIter = (dc < eps);
+        
+        if opt.display && (mod(i,dispfreq) == 0 || i == 1 || stopIter)
+            h = rt_fprintreplace(sprintf('Iteration %d \t\t Difference %.4e', i, dc), h);
+        end
+        if stopIter
             break;
         end
     end
 end
+if opt.display
+    fprintf('\n');
+end
 
-rho = c*c';
-[rinfo.pval, rinfo.chi2, rinfo.df] = rt_significance(rho, proto, opt.nshots, clicks, opt.rank, false);
+dm = c*c';
 rinfo.iter = i;
 rinfo.rank = opt.rank;
+[rinfo.pval, rinfo.chi2, rinfo.df] = rt_significance(dm, proto, nshots, clicks, opt.rank, false);
 if opt.normalize
-    rho = rho / trace(rho);
+    dm = dm / trace(dm);
 end
 
 end

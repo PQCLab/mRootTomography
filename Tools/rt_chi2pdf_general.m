@@ -1,6 +1,5 @@
-function p = chi2pdf_general(x, d)
-    
-%% Кусок кода Богданова
+function [p,x] = rt_chi2pdf_general(x,d)
+
 err = 1;
 N0=2048*2;
 z0=8;
@@ -12,9 +11,20 @@ while err>3e-3
     end
 end
 
-%% Интерполяция
-p = interp1(x_F, p, x);
-p(isnan(p)) = 0;
+if isempty(x)
+    x = x_F;
+    ind = find(p>1e-5,1,'last');
+    x = x(1:ind);
+    p = p(1:ind);
+else
+    p = interp1(x_F, p, x);
+    p(isnan(p)) = 0;
+end
+
+if length(d) == 2
+    ind = find(p==max(p),1);
+    p(1:(ind-1)) = nan;
+end
     
 end
 

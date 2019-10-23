@@ -39,7 +39,7 @@ if ischar(opt.rank) && strcmpi(opt.rank, 'auto')
 end
 
 if ~opt.tracePreserving
-    [chi, rinfo] = rt_dm_reconstruct(clicks, proto,  varargin{:}, 'Rank', opt.rank);
+    [chi, rinfo] = rt_dm_reconstruct(clicks, proto, varargin{:}, 'Rank', opt.rank);
     if opt.normalize
         chi = chi * sqrt(s);
     end
@@ -47,9 +47,10 @@ if ~opt.tracePreserving
 end
 
 nshots = opt.nshots;
+[proto,nshots] = rt_proto_check(proto,nshots);
 
 % Params
-dispfreq = 50*0;
+dispfreq = 50*1;
 eps = 1e-10;
 N_max = 100000;
 
@@ -64,7 +65,7 @@ e = project_tp(e);
 B = rt_meas_matrix(M);
 
 % Accelerated projective gradient descend
-L = sum(n);
+L = sum(n)*10;
 x0 = e; x1 = e; z1 = e;
 t0 = 0; t1 = 1;
 alp = 1/L;
