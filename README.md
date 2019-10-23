@@ -17,7 +17,7 @@ To install the library clone the repository or download and unpack zip-archive. 
 
 ### Data format
 
-Quantum tomography of a state $\rho$ consists of a set of complementary _experiments_. In each experiment one perform a measurement that has several outcomes described by a set of measurement operators $M_k$ such that the probability to  get _k_-th result is ${p_k=\text{Tr}(\rho M_k)}$. The measurement _protocol_ describes the set of experiments and corresponding measurement operators matrices. Each experiment is repeated many times resulting in some number of outcomes for each measurement operator.
+Quantum tomography of a state $`\rho`$ consists of a set of complementary _experiments_. In each experiment one perform a measurement that has several outcomes described by a set of measurement operators $`M_k`$ such that the probability to  get _k_-th result is $`{p_k=\text{Tr}(\rho M_k)}`$. The measurement _protocol_ describes the set of experiments and corresponding measurement operators matrices. Each experiment is repeated many times resulting in some number of outcomes for each measurement operator.
 ```
 proto{j}(:,:,k) % k-th measurement matrix for j-th experiment
 clicks{j}(k,1) % number of k-th outcome observations in j-th experiment
@@ -64,7 +64,7 @@ One can theoretically estimate reconstruction fidelity for the desired measureme
 ```
 d = rt_dm_theory(dm_expected,proto,nshots)
 ```
-The distribution of infidelity has the form of a generalized chi-squared distribution: ${1-F \sim \sum_j{d_j \xi_j^2}}$, where each $\xi_j$ is a normal distribution with zero mean and unit variance. The following script plots theoretical distribution and shows the value of infidelity for a single tomography experiment.
+The distribution of infidelity has the form of a generalized chi-squared distribution: $`{1-F \sim \sum_j{d_j \xi_j^2}}`$, where each $`\xi_j`$ is independent and has a normal distribution with zero mean and unit variance. The following script plots theoretical distribution and shows the value of infidelity for a single tomography experiment.
 
 ```
 dm_expected = [0.5, 0.45; 0.45, 0.5];
