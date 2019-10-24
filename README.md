@@ -10,8 +10,7 @@ MATLAB library for the discrete variables quantum state tomography using root ap
 - [Algorithms](#algorithms)
 - [References](#references)
 
-<a name="start"/>
-## Getting Started
+## <a name="start">Getting Started</a>
 
 <a name="install" />
 ### Prerequisites and installing
