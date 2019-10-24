@@ -58,7 +58,7 @@ addOptional(p, 'nshots', 'sum');
 addParameter(p, 'rank', 'auto');
 addParameter(p, 'normalize', true);
 addParameter(p, 'pinvOnly', false);
-addParameter(p, 'significanceLevel', 0.005, @(x)x>0&&x<1);
+addParameter(p, 'significanceLevel', 0.05, @(x)x>0&&x<1);
 addParameter(p, 'alpha', 0.5, @(x)x>0&&x<=1);
 addParameter(p, 'tol', 1e-8, @(x)x>0);
 addParameter(p, 'maxIter', 1e6, @(x)x>0);
@@ -104,8 +104,10 @@ if ischar(opt.rank) && strcmpi(opt.rank, 'auto')
     return;
 end
 
-nshots = opt.nshots;
-[proto,nshots] = rt_proto_check(proto,nshots,clicks);
+[proto,nshots] = rt_proto_check(proto,opt.nshots,clicks);
+if opt.rank < 1 || opt.rank > size(proto{1},1)
+    error('Density matrix rank should be between 1 and Hilbert space dimension');
+end
 
 % Params
 dispfreq = 50;
@@ -127,7 +129,7 @@ if ~opt.pinvOnly
     Ir = inv(reshape(B'*n, s, s));
     for i = 1:N_max
         cp = c;
-        c = alp*get_new_value(c, k, B, Ir, s) + (1-alp)*cp;
+        c = (1-alp)*get_new_value(c, k, B, Ir, s) + alp*cp;
         dc = norm(cp-c);
         stopIter = (dc < eps);
         
@@ -146,7 +148,7 @@ end
 dm = c*c';
 rinfo.iter = i;
 rinfo.rank = opt.rank;
-[rinfo.pval, rinfo.chi2, rinfo.df] = rt_significance(dm, proto, nshots, clicks, opt.rank, false);
+[rinfo.pval, rinfo.chi2, rinfo.df] = rt_significance(dm, clicks, proto, nshots, 'Rank', opt.rank);
 if opt.normalize
     dm = dm / trace(dm);
 end

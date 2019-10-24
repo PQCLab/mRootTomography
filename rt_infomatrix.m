@@ -1,11 +1,20 @@
-function H = rt_infomatrix(dm, proto, nshots, r)
+function H = rt_infomatrix(dm, proto, nshots, varargin)
+% RT_INFOMATRIX TODO
+p = inputParser;
+p.KeepUnmatched = true;
+addRequired(p, 'dm');
+addRequired(p, 'proto');
+addRequired(p, 'nshots');
+addOptional(p, 'rank', 'dm');
+parse(p,dm,proto,nshots,varargin{:});
+opt = p.Results;
 
-if nargin < 4 || strcmp(r,'auto')
-    r = rank(dm);
+if ischar(opt.rank) && strcmp(opt.rank,'dm')
+    opt.rank = rank(dm);
 end
 proto = rt_proto_check(proto, nshots);
 
-c = rt_purify(dm,r);
+c = rt_purify(dm,opt.rank);
 [M, n] = rt_data_join(proto, nshots);
 
 H = 0;

@@ -11,20 +11,19 @@ if nargin < 3
     asymp = true;
 end
 
-
 m = length(proto);
 clicks = cell(1,m);
 for j = 1:m
-    d = size(proto{j},3);
-    p = zeros(d,1);
-    for i = 1:d
+    s = size(proto{j},3);
+    p = zeros(s,1);
+    for i = 1:s
         p(i) = real(trace(proto{j}(:,:,i) * dm));
     end
     if asymp
         clicks{j} = nshots(j)*p;
-    elseif d == 1
+    elseif s == 1
         clicks{j} = poissrnd(nshots(j)*p);
-    elseif d == 2
+    elseif s == 2
         clicks{j}(1,1) = binornd(nshots(j), p(1)/sum(p));
         clicks{j}(2,1) = nshots(j) - clicks{j}(1,1);
     else

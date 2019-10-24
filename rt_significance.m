@@ -1,23 +1,47 @@
-function [pval, chi2, df] = rt_significance(rho, proto, nshots, clicks, r, isChi)
-%rt_SIGNIFICANCE TODO
+function [pval, chi2, df] = rt_significance(dm, clicks, proto, varargin)
+%RT_SIGNIFICANCE TODO Vary df
 
-[proto,nshots] = rt_proto_check(proto,nshots);
-[M, n, k] = rt_data_join(proto, nshots, clicks);
-nE = real(rt_meas_matrix(M)*rho(:)).*n;
-nO = k;
+p = inputParser;
+p.KeepUnmatched = true;
+addRequired(p, 'dm');
+addRequired(p, 'clicks');
+addRequired(p, 'proto');
+addOptional(p, 'nshots', 'sum');
+addParameter(p, 'fromClicks', true);
+addParameter(p, 'rank', 'dm');
+addParameter(p, 'isProcess', false);
+addParameter(p, 'normalizeDM', true);
+addParameter(p, 'measDF', 'proto');
+parse(p,dm,clicks,proto,varargin{:});
+opt = p.Results;
 
-s = size(rho,1);
-if nargin < 6 || ~isChi
-    nuP = (2*s-r)*r - 1;
-else
-    nuP = (2*s-r)*r - s;
+[proto,nshots] = rt_proto_check(proto,opt.nshots,clicks);
+[M, n, nO] = rt_data_join(proto, nshots, clicks);
+nE = real(rt_meas_matrix(M)*dm(:)).*n;
+if opt.normalizeDM
+    nE = nE / sum(nE) * sum(nO);
 end
 
-sk = cellfun(@(k) length(k), clicks);
-df = length(k);
-df = df - nuP; % Minus number of the independent real paramenters of the density matrix with rank-r
-df = df - sum(sk > 1); % Each measurement with more then 1 output have one connection
-df = df - (sum(sk == 1) > 0); % If there exists one measurement with single input there is one more connection (because of the likelihod equation form)
+if ischar(opt.measDF) && strcmpi(opt.measDF,'proto')
+    s = size(dm,1);
+    nPovm = sum(cellfun(@(X) norm(sum(X,3)-eye(s))<1e-5, proto));
+    df = length(nO) - nPovm - (opt.normalizeDM && (nPovm < length(proto)));
+else
+    df = opt.measDF;
+end
+
+if opt.fromClicks
+    r = opt.rank;
+    if ischar(r) && strcmpi(r,'dm')
+        r = rank(dm);
+    end
+    if opt.isProcess
+        nuP = (2*s-r)*r - s;
+    else
+        nuP = (2*s-r)*r - 1;
+    end
+    df = df - nuP;
+end
 
 chi2 = sum((nE-nO).^2./nE);
 

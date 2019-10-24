@@ -1,15 +1,14 @@
 N = 1;
 s = 2^N;
 r = 2;
-% dm_expected = rt_randstate(s, 'mixed', r);
-% dm_expected = [1, 1j; -1j, 1]/2;
-dm_expected = [0.5, 0.45; 0.45, 0.5];
+dm_true = rt_randstate(s, 'mixed', r);
 
 proto = rt_proto_measurement('pauli', N);
 nshots = rt_nshots_devide(1e2,length(proto),'equal');
-clicks = rt_simulate(dm_expected, proto, nshots);
+clicks = rt_simulate(dm_true, proto, nshots);
 
-[dm, rinfo] = rt_dm_reconstruct(clicks,proto,nshots,'Display',true,'Rank',r);
+dm_expected = dm_true;
+[dm, rinfo] = rt_dm_reconstruct(clicks,proto,nshots,'Display',true);
 F = rt_fidelity(dm, dm_expected);
 fprintf('Fidelity: %4f\n', F);
 
