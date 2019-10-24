@@ -12,8 +12,7 @@ MATLAB library for the discrete variables quantum state tomography using root ap
 
 ## <a name="start">Getting Started</a>
 
-<a name="install" />
-### Prerequisites and installing
+### <a name="install">Prerequisites and installing</a>
 
 Required toolboxes:
 * Statistics toolbox
@@ -24,8 +23,7 @@ To install the library clone the repository or download and unpack zip-archive. 
 >> rt_startup
 ```
 
-<a name="format" />
-### Data format
+### <a name="format">Data format</a>
 
 Measurement protocol is defined by a set of complementary measurement experiments over density matrix ![rho](https://latex.codecogs.com/svg.latex?%5Crho). Every experiment is repeated many times and has several possible measurement outcomes. The probability to get ![k](https://latex.codecogs.com/svg.latex?k)-th outcome is determined by the measurement operator ![M_k](https://latex.codecogs.com/svg.latex?M_k) as ![p_k=trace(rho*M_k)](https://latex.codecogs.com/svg.latex?p_k%3D%5Ctext%7BTr%7D%28%5Crho%20M_k%29). The set of measurement operators and the number of experiments repetitions define the **_measurement protocol_**. The number of observations for each outcome define the **_measurement results_**. The following code describe the required data format.
 ```
@@ -48,8 +46,7 @@ dm_true = rt_randstate(2,'mixed',1); % Generate random one-qubit pure state dens
 clicks = rt_simulate(dm_true, proto, nshots); % Simulate measurements
 ```
 
-<a name="qst" />
-### Quantum state tomography
+### <a name="qst">Quantum state tomography</a>
 Reconstruct density matrix and estimate fidelity comparing to expected state.
 ```
 dm_expected = [0.5, 0.45; 0.45, 0.5]; % Expected density matrix
@@ -83,8 +80,7 @@ Fidelity: 0.998998
 ```
 In general, you can specify any rank from 1 to the Hilbert space dimension.
 
-<a name="fidelity" />
-### Fidelity distribution
+### <a name="fidelity">Fidelity distribution</a>
 
 One can theoretically estimate reconstruction fidelity for the desired measurement and quantum state model. This code will return vector of variances of the quantum state independent parameters.
 ```
@@ -113,8 +109,8 @@ sum(d) % Mean infidelity
 2*sum(d.^2) % Infidelity variance
 1-sum(d) % Mean fidelity
 ```
-<a name="algorithms" />
-## Algorithms
+
+## <a name="algorithms">Algorithms</a>
 
 Consider a quantum state in the Hilbert space ![H](https://latex.codecogs.com/svg.latex?%5Cmathcal%7BH%7D) described by the density matrix ![rho](https://latex.codecogs.com/svg.latex?%5Crho).
 According to the root approach the rank-![r](https://latex.codecogs.com/svg.latex?r) quantum state parametrization is defined by the complex matrix ![c](https://latex.codecogs.com/svg.latex?c) of size ![sxr](https://latex.codecogs.com/svg.latex?s%20%5Ctimes%20r) (![s=dimH](https://latex.codecogs.com/svg.latex?s%3D%5Ctext%7Bdim%7D%5Cmathcal%7BH%7D)) such that ![rho=cc+](https://latex.codecogs.com/svg.latex?%5Crho%3Dcc%5E%5Cdagger). To get the quantum state maximum likelihood estimation one must solve the following quasi-linear equation (_likelihood equation_) [[1]](#ref1):
@@ -129,7 +125,6 @@ The search of the likelihood equation solution is performed by the fixed-point i
 
 Here ![alpha](https://latex.codecogs.com/svg.latex?%5Calpha) is the regularization parameter. We use Moore-Penrose pseudo-inversion to get ![c_0](https://latex.codecogs.com/svg.latex?c_0).
 
-<a name="references" />
-## References
+## <a name="references">References</a>
 
 <a name="ref1">[1]</a> Bogdanov Yu. I. Unified statistical method for reconstructing quantum states by purification // _JETP_ **108(6)** 928-935 (2009); doi: 10.1134/S106377610906003X

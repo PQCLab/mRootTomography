@@ -9,8 +9,7 @@
 	* [rt_dm_theory](#rt_dm_theory)
 	* [rt_dm_theory_loss](#rt_dm_theory_loss)
 
-<a name="format"/>
-## Data format
+## <a name="format">Data format</a>
 
 Measurement protocol is defined by a set of complementary measurement experiments over density matrix ![rho](https://latex.codecogs.com/svg.latex?%5Crho). Every experiment is repeated many times and has several possible measurement outcomes. The probability to get ![k](https://latex.codecogs.com/svg.latex?k)-th outcome is determined by the measurement operator ![M_k](https://latex.codecogs.com/svg.latex?M_k) as ![p_k=trace(rho*M_k)](https://latex.codecogs.com/svg.latex?p_k%3D%5Ctext%7BTr%7D%28%5Crho%20M_k%29). The set of measurement operators and the number of experiments repetitions define the **_measurement protocol_**. The number of observations for each outcome define the **_measurement results_**. The following code describe the required data format.
 ```
@@ -19,11 +18,9 @@ nshots(j) % Number of j-th experiment repetitions
 clicks{j}(k) % Number of k-th outcome observations in j-th experiment
 ```
 
-<a name="reconstruction"/>
-## Reconstruction
+## <a name="reconstruction">Reconstruction</a>
 
-<a name="rt_dm_reconstruct"/>
-### rt_dm_reconstruct
+### <a name="rt_dm_reconstruct">rt_dm_reconstruct</a>
 
 Reconstruct the quantum state density matrix by the results of `m` complementary measurements.
 
@@ -52,8 +49,7 @@ List of available parameters in name-value pairs:
 - `MaxIter` (integer) &ndash; maximum number of iterations. Default: `1e6`
 - `Display` (bool) &ndash; display iterations. Default: `false`
 
-<a name="rt_significance"/>
-### rt_significance
+### <a name="rt_significance">rt_significance</a>
 
 Calculate density matrix statistical significance using chi-squared test
 
@@ -74,11 +70,9 @@ List of available parameters in name-value pairs:
 - `NormalizeDM` (boolean) &ndash; normalize `dm` to make the sum of all expected counts equal to the sum of observed counts. Default: `false`
 - `MeasDF` (integer) &ndash; number of measurements degrees of freedom. Default: `N-Npovm-Nnorm`, where `N` is the total number of all possible outcomes in all experiments, `Npovm` is the number of POVM-measurements, `Nnorm = 1` if `NormalizeDM = true` and `Npovm < length(proto)` and `Nnorm = 0` otherwise
 
-<a name="fidelity"/>
-## Information and fidelity analysis
+## <a name="fidelity">Information and fidelity analysis</a>
 
-<a name="rt_infomatrix"/>
-### rt_infomatrix
+### <a name="rt_infomatrix">rt_infomatrix</a>
 
 Calculate total Fisher information matrix
 
@@ -88,8 +82,7 @@ Calculate total Fisher information matrix
 Output:
 - `H` &ndash; total Fisher information matrix
 
-<a name="rt_dm_theory"/>
-### rt_dm_theory
+### <a name="rt_dm_theory">rt_dm_theory</a>
 
 Calculate parameters of theoretical infidelity distribution
 
@@ -99,8 +92,7 @@ Calculate parameters of theoretical infidelity distribution
 Output:
 - `d` &ndash; column-vector of infidelity distribution parameters
 
-<a name="rt_dm_theory_loss"/>
-### rt_dm_theory_loss
+### <a name="rt_dm_theory_loss">rt_dm_theory_loss</a>
 
 Calculate loss function
 
