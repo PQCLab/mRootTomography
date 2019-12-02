@@ -157,7 +157,9 @@ end
 
 function c = get_new_value(c, k, B, Ir, s)
 rho = c*c';
-a = k./(B*rho(:));
+p = real(B*rho(:));
+p(p<1e-15) = 1e-15;
+a = k./p;
 J = reshape(B'*a, s, s);
 c = Ir*J*c;
 end

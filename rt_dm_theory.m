@@ -13,25 +13,28 @@ dm = dm / trace(dm);
 proto = rt_proto_check(proto, nshots);
 H = rt_infomatrix(dm, proto, nshots, varargin{:});
 
+Constraints = [];
+[Uh,Sh] = eig(H);
+h = diag(Sh);
+
 % Normalization constraint
 if ischar(opt.rank) && strcmp(opt.rank,'dm')
     opt.rank = rank(dm);
 end
 c = rt_purify(dm,opt.rank);
-[M, n] = rt_data_join(proto, nshots);
-R = 2*sum(bsxfun(@times, M, reshape(n,1,1,[])), 3) * c;
-R = [real(R(:)); imag(R(:))];
-U = null(R');
-H = U'*H*U;
+Constraints = horzcat(Constraints, [real(c(:)); imag(c(:))]);
 
-% Finding d
-h = svd(H);
-ind0 = find(h < 1e-4);
+% Phase insensitivity constraint
+ind0 = find(h < 1e-12);
 if length(ind0) > opt.rank^2
-   warning('Information matrix has more than r^2 zero eigenvalues. Extra zeros are ignored');
+   warning('Information matrix has more than r^2 zero eigenvalues');
 end
-h(ind0) = [];
-d = 1./(2*h);
+ind0 = ind0(1:opt.rank^2);
+Constraints = horzcat(Constraints, Uh(:,ind0));
+
+% Variances
+L = null(Constraints')'*Uh*diag(1./sqrt(2*h));
+d = svd(L).^2;
 
 end
 

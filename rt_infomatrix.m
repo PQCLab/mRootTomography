@@ -16,20 +16,29 @@ proto = rt_proto_check(proto, nshots);
 
 c = rt_purify(dm,opt.rank);
 [M, n] = rt_data_join(proto, nshots);
+B = rt_meas_matrix(M);
+
+pTol = 1e-10;
+Ntries = 100;
+for i = 1:Ntries
+    prob = real(B*reshape(c*c',[],1));
+    if any(prob < pTol)
+        if i == Ntries
+            warning('Failed to find non-singular state');
+        else
+            c = c + (randn(size(c)) + 1j*randn(size(c)))*sqrt(pTol);
+            c = c / sqrt(trace(c'*c));
+        end
+    else
+        break;
+    end
+end
 
 H = 0;
-pTol = 1e-6;
 for j = 1:size(M,3)
-    p = real(trace(M(:,:,j)*dm));
-    ch = c;
-    if p < pTol
-        ch = c + (randn(size(c)) + 1j*randn(size(c)))*pTol;
-        ch = ch / sqrt(trace(ch'*ch));
-        p = real(trace(ch'*M(:,:,j)*ch));
-    end
-    a = reshape(M(:,:,j)*ch, [], 1);
+    a = reshape(M(:,:,j)*c, [], 1);
     a = [real(a); imag(a)]; 
-    H = H + n(j)*(a*a')/p;
+    H = H + n(j)*(a*a')/prob(j);
 end
 H = 2*H;
 
