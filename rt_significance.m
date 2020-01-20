@@ -1,4 +1,4 @@
-function [pval, chi2, df] = rt_significance(dm, clicks, proto, varargin)
+function [pval, chi2, df, n_observed, n_expected] = rt_significance(dm, clicks, proto, varargin)
 %RT_SIGNIFICANCE TODO Vary df
 
 p = inputParser;
@@ -16,16 +16,21 @@ parse(p,dm,clicks,proto,varargin{:});
 opt = p.Results;
 
 [proto,nshots] = rt_proto_check(proto,opt.nshots,clicks);
-[M, n, nO] = rt_data_join(proto, nshots, clicks);
-nE = real(rt_meas_matrix(M)*dm(:)).*n;
+[M, n, n_observed] = rt_data_join(proto, nshots, clicks);
+n_expected = real(rt_meas_matrix(M)*dm(:)).*n;
 if opt.normalizeDM
-    nE = nE / sum(nE) * sum(nO);
+    n_expected = n_expected / sum(n_expected) * sum(n_observed);
 end
 
 if ischar(opt.measDF) && strcmpi(opt.measDF,'proto')
     s = size(dm,1);
-    nPovm = sum(cellfun(@(X) norm(sum(X,3)-eye(s))<1e-5, proto));
-    df = length(nO) - nPovm - (opt.normalizeDM && (nPovm < length(proto)));
+    if opt.isProcess
+        ss = sqrt(s);
+        nPovm = sum(cellfun(@(X) norm(rt_prttrace(sum(X,3),[ss,ss],1)-eye(ss))<1e-5, proto));
+    else
+        nPovm = sum(cellfun(@(X) norm(sum(X,3)-eye(s))<1e-5, proto));
+    end
+    df = length(n_observed) - nPovm - (opt.normalizeDM && (nPovm < length(proto)));
 else
     df = opt.measDF;
 end
@@ -43,7 +48,7 @@ if opt.fromClicks
     df = df - nuP;
 end
 
-chi2 = sum((nE-nO).^2./nE);
+chi2 = sum((n_expected-n_observed).^2./n_expected);
 
 if df == 0
     pval = nan;

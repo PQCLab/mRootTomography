@@ -148,7 +148,7 @@ end
 dm = c*c';
 rinfo.iter = i;
 rinfo.rank = opt.rank;
-[rinfo.pval, rinfo.chi2, rinfo.df] = rt_significance(dm, clicks, proto, nshots, 'Rank', opt.rank);
+[rinfo.pval, rinfo.chi2, rinfo.df, rinfo.n_observed, rinfo.n_expected] = rt_significance(dm, clicks, proto, nshots, 'Rank', opt.rank);
 if opt.normalize
     dm = dm / trace(dm);
 end

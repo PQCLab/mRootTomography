@@ -12,7 +12,7 @@ addOptional(p, 'nshots', 'sum');
 addParameter(p, 'rank', 'auto');
 addParameter(p, 'normalize', true);
 addParameter(p, 'tracePreserving', true);
-addParameter(p, 'significanceLevel', 0.5);
+addParameter(p, 'significanceLevel', 0.05);
 addParameter(p, 'display', 'none');
 parse(p,clicks,proto,varargin{:});
 opt = p.Results;
@@ -108,7 +108,7 @@ if dispfreq > 0
 end
 
 chi = x1*x1';
-[rinfo.pval, rinfo.chi2, rinfo.df] = rt_significance(chi, proto, nshots, clicks, opt.rank, true);
+[rinfo.pval, rinfo.chi2, rinfo.df, rinfo.n_observed, rinfo.n_expected] = rt_significance(chi, clicks, proto, nshots, 'Rank', opt.rank, 'isProcess', true);
 rinfo.iter = i;
 rinfo.rank = opt.rank;
 if opt.normalize
