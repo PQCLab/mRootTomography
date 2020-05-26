@@ -1,24 +1,17 @@
 function p = rt_projprob(p)
 %PROJPROB Project real non-positive probability distribution no positive
 
-for i = 1:1000
-    in = find(p<0);
-    mn = length(in);
-    if mn == 0
+a = 0;
+[ps,ind] = sort(p,'descend');
+for i = length(ps):-1:1
+    if ps(i) + a/i >= 0
+        ps(1:i) = ps(1:i)+a/i;
         break;
     end
-    
-    ip = find(p>0);
-    mp = length(ip);
-    
-    dp = -sum(p(in))/mp;
-    p(in) = 0;
-    p(ip) = p(ip)-dp;
+    a = a + ps(i);
+    ps(i) = 0;
 end
-
-if ~isempty(find(p<0, 1))
-    error('Failed to project probability distribution');
-end
+p(ind) = ps;
 
 end
 

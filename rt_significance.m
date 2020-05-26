@@ -22,8 +22,8 @@ if opt.normalizeDM
     n_expected = n_expected / sum(n_expected) * sum(n_observed);
 end
 
+s = size(dm,1);
 if ischar(opt.measDF) && strcmpi(opt.measDF,'proto')
-    s = size(dm,1);
     if opt.isProcess
         ss = sqrt(s);
         nPovm = sum(cellfun(@(X) norm(rt_prttrace(sum(X,3),[ss,ss],1)-eye(ss))<1e-5, proto));
@@ -50,7 +50,7 @@ end
 
 chi2 = sum((n_expected-n_observed).^2./n_expected);
 
-if df == 0
+if df <= 0
     pval = nan;
 else
     pval = gammainc(chi2/2,df/2,'upper'); % same as 1-chi2cdf(chi2, df);

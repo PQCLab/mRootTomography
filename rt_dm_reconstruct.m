@@ -18,10 +18,13 @@ function [dm, rinfo] = rt_dm_reconstruct(clicks, proto, varargin)
 %   dm = rt_dm_reconstruct( ___ ,Name,Value) specifies additional parameters
 %   for reconstruction. For example, rt_dm_reconstruct(clicks,proto,'Rank',1)
 %   reconstructs a pure (rank-1) quantum state. Available parameters:
-%       • Rank (integer) - rank of the quantum state model. 'auto'
+%       • Rank (integer or sting) - rank of the quantum state model. 'auto'
 %       indicates that rank should be calculated automatically using
-%       chi-squared test. Default: 'auto'
+%       chi-squared test, 'full' indicates full-rank reonstruction. Default: 'auto'
 %       • Normalize (boolean) - normalize output density matrix. Default: true
+%       • Init (string or dm) - initial guess of the density matrix. Value
+%       'pinv' stands for the initial guess by pseudo-inversion.
+%       Default: 'pinv'
 %       • PinvOnly (boolean) - reconstruct density matrix by the
 %       pseudo-inversion only. Default: false
 %       • SignificanceLevel (float) - significance level for the
@@ -31,7 +34,7 @@ function [dm, rinfo] = rt_dm_reconstruct(clicks, proto, varargin)
 %       matrix C becomes Alpha*CN + (1-Alpha)*C, where CN is a new state matrix.
 %       Default: 0.5
 %       • Tol (float) - termination tolerance on state matrix. Default: 1e-8
-%       • MaxIter (integet) - maximum number of iterations. Default: 1e6
+%       • MaxIter (integer) - maximum number of iterations. Default: 1e6
 %       • Display (bool) - display iterations. Default: false
 %
 %   [dm,rinfo] = rt_dm_reconstruct( ___ ) also returns additional
@@ -57,6 +60,7 @@ addRequired(p, 'proto');
 addOptional(p, 'nshots', 'sum');
 addParameter(p, 'rank', 'auto');
 addParameter(p, 'normalize', true);
+addParameter(p, 'init', 'pinv');
 addParameter(p, 'pinvOnly', false);
 addParameter(p, 'significanceLevel', 0.05, @(x)x>0&&x<1);
 addParameter(p, 'alpha', 0.5, @(x)x>0&&x<=1);
@@ -102,6 +106,8 @@ if ischar(opt.rank) && strcmpi(opt.rank, 'auto')
     rinfo.dm_r = dm_r(1:r);
     rinfo.info_r = rinfo_r(1:r);
     return;
+elseif ischar(opt.rank) && strcmpi(opt.rank, 'full')
+    opt.rank = s;
 end
 
 [proto,nshots] = rt_proto_check(proto,opt.nshots,clicks);
@@ -115,17 +121,22 @@ eps = opt.tol;
 N_max = opt.maxIter;
 alp = opt.alpha;
 
-% First approximation by pseudo-inverse
-if opt.display
-    h = rt_fprintreplace('Pseudi-inversion...');
-end
 [M, n, k] = rt_data_join(proto, nshots, clicks);
-[~, c] = rt_pinv(M, k./n, opt.rank);
-B = rt_meas_matrix(M);
+if strcmpi(opt.init,'pinv') || opt.pinvOnly
+    if opt.display
+        h = rt_fprintreplace('Pseudo-inversion...');
+    end
+    [~, c] = rt_pinv(M, k./n, opt.rank);
+end
+
+if ~strcmpi(opt.init,'pinv')
+    c = rt_purify(opt.init, opt.rank);
+end
 
 i = 0;
 if ~opt.pinvOnly
     s = size(c,1);
+    B = rt_meas_matrix(M);
     Ir = inv(reshape(B'*n, s, s));
     for i = 1:N_max
         cp = c;
