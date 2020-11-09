@@ -1,4 +1,4 @@
-function h = rt_fprintreplace(str,h)
+function h = rt_fprint(str,h)
 
 if nargin > 1
     fprintf(repmat('\b',1,h.nbytes));
