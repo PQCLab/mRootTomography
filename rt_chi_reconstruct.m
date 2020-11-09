@@ -11,9 +11,11 @@ addRequired(p, 'proto');
 addOptional(p, 'nshots', 'sum');
 addParameter(p, 'rank', 'auto');
 addParameter(p, 'normalize', true);
+addParameter(p, 'init', 'pinv');
+addParameter(p, 'pinvOnly', false);
 addParameter(p, 'tracePreserving', true);
 addParameter(p, 'significanceLevel', 0.05);
-addParameter(p, 'display', 'none');
+addParameter(p, 'display', false);
 parse(p,clicks,proto,varargin{:});
 opt = p.Results;
 
@@ -46,68 +48,83 @@ if ~opt.tracePreserving
     return;
 end
 
-nshots = opt.nshots;
-[proto,nshots] = rt_proto_check(proto,nshots);
+[proto,nshots] = rt_proto_check(proto,opt.nshots,clicks);
+if opt.rank < 1 || opt.rank > size(proto{1},1)
+    error('Process matrix rank should be between 1 and Hilbert space dimension');
+end
 
-% Params
-dispfreq = 50*1;
-eps = 1e-10;
-N_max = 100000;
-
-if dispfreq > 0
+if opt.display
     h = rt_fprintreplace('Initialization...');
 end
 
-% First approximation by pseudo-inverse
-[M, n, k] = rt_data_join(proto, nshots, clicks);
-[~, e] = rt_pinv(M, k./n, opt.rank);
-e = project_tp(e);
-B = rt_meas_matrix(M);
+% Params
+dispfreq = 50;
+eps = 1e-10;
+N_max = 100000;
 
-% Accelerated projective gradient descend
-L = sum(n)*10;
-x0 = e; x1 = e; z1 = e;
-t0 = 0; t1 = 1;
-alp = 1/L;
-F_x1 = 0;
-for i = 1:N_max
-    y1 = x1 + t0/t1*(z1-x1) + (t0-1)/t1*(x1-x0);
-    z2 = project_tp(y1-alp*get_grad(y1, k, B, n, s));
-    v2 = project_tp(x1-alp*get_grad(x1, k, B, n, s));
-    F_z2 = get_func(z2,k,n,B);
-    F_v2 = get_func(v2,k,n,B);
-    if F_z2 <= F_v2
-        x2 = z2;
-        F_x2 = F_z2;
-    else
-        x2 = v2;
-        F_x2 = F_v2;
+[M, n, k] = rt_data_join(proto, nshots, clicks);
+if strcmpi(opt.init,'pinv') || opt.pinvOnly
+    if opt.display
+        h = rt_fprintreplace('Pseudo-inversion...', h);
     end
-    
-    x0 = x1;
-    x1 = x2;
-    z1 = z2;
-    
-    t0 = t1;
-    t1 = (sqrt(4*t0^2+1)+1)/2;
-    
-    dx = norm(x1-x0);
-    dF = abs(F_x2-F_x1);
-    F_x1 = F_x2;
-    stopIter = (dx < eps);
-    
-    if dispfreq > 0 && (mod(i,dispfreq) == 0 || i == 1 || stopIter)
-        h = rt_fprintreplace(sprintf('r = %d | dx = %.4e | dF = %.4e | F = %.4e | %d', opt.rank, dx, dF, F_x1, i), h);
-    end
-    if stopIter
-        break;
-    end
+    [~, e] = rt_pinv(M, k./n, opt.rank);
+    e = project_tp(e);
 end
-if dispfreq > 0
+
+if ~strcmpi(opt.init,'pinv')
+    e = rt_purify(opt.init, opt.rank);
+end
+
+e = project_tp(e);
+
+i = 0;
+if ~opt.pinvOnly
+    B = rt_meas_matrix(M);
+    L = sum(n)*10;
+    x0 = e; x1 = e; z1 = e;
+    t0 = 0; t1 = 1;
+    alp = 1/L;
+    F_x1 = 0;
+    for i = 1:N_max
+        y1 = x1 + t0/t1*(z1-x1) + (t0-1)/t1*(x1-x0);
+        z2 = project_tp(y1-alp*get_grad(y1, k, B, n, s));
+        v2 = project_tp(x1-alp*get_grad(x1, k, B, n, s));
+        F_z2 = get_func(z2,k,n,B);
+        F_v2 = get_func(v2,k,n,B);
+        if F_z2 <= F_v2
+            x2 = z2;
+            F_x2 = F_z2;
+        else
+            x2 = v2;
+            F_x2 = F_v2;
+        end
+
+        x0 = x1;
+        x1 = x2;
+        z1 = z2;
+
+        t0 = t1;
+        t1 = (sqrt(4*t0^2+1)+1)/2;
+
+        dx = norm(x1-x0);
+        dF = abs(F_x2-F_x1);
+        F_x1 = F_x2;
+        stopIter = (dx < eps);
+
+        if opt.display && (mod(i,dispfreq) == 0 || i == 1 || stopIter)
+            h = rt_fprintreplace(sprintf('r = %d | dx = %.4e | dF = %.4e | F = %.4e | %d', opt.rank, dx, dF, F_x1, i), h);
+        end
+        if stopIter
+            break;
+        end
+    end
+    e = x1;
+end
+if opt.display
     fprintf('\n');
 end
 
-chi = x1*x1';
+chi = e*e';
 [rinfo.pval, rinfo.chi2, rinfo.df, rinfo.n_observed, rinfo.n_expected] = rt_significance(chi, clicks, proto, nshots, 'Rank', opt.rank, 'isProcess', true);
 rinfo.iter = i;
 rinfo.rank = opt.rank;

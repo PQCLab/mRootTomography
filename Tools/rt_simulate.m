@@ -17,7 +17,7 @@ for j = 1:m
     s = size(proto{j},3);
     p = zeros(s,1);
     for i = 1:s
-        p(i) = real(trace(proto{j}(:,:,i) * dm));
+        p(i) = abs(trace(proto{j}(:,:,i) * dm));
     end
     if asymp
         clicks{j} = nshots(j)*p;

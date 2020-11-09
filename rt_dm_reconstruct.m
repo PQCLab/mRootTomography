@@ -62,6 +62,7 @@ addParameter(p, 'rank', 'auto');
 addParameter(p, 'normalize', true);
 addParameter(p, 'init', 'pinv');
 addParameter(p, 'pinvOnly', false);
+addParameter(p, 'getStats', true);
 addParameter(p, 'significanceLevel', 0.05, @(x)x>0&&x<1);
 addParameter(p, 'alpha', 0.5, @(x)x>0&&x<=1);
 addParameter(p, 'tol', 1e-8, @(x)x>0);
@@ -115,6 +116,10 @@ if opt.rank < 1 || opt.rank > size(proto{1},1)
     error('Density matrix rank should be between 1 and Hilbert space dimension');
 end
 
+if opt.display
+    h = rt_fprintreplace('Initialization...');
+end
+
 % Params
 dispfreq = 50;
 eps = opt.tol;
@@ -124,7 +129,7 @@ alp = opt.alpha;
 [M, n, k] = rt_data_join(proto, nshots, clicks);
 if strcmpi(opt.init,'pinv') || opt.pinvOnly
     if opt.display
-        h = rt_fprintreplace('Pseudo-inversion...');
+        h = rt_fprintreplace('Pseudo-inversion...', h);
     end
     [~, c] = rt_pinv(M, k./n, opt.rank);
 end
@@ -159,7 +164,9 @@ end
 dm = c*c';
 rinfo.iter = i;
 rinfo.rank = opt.rank;
-[rinfo.pval, rinfo.chi2, rinfo.df, rinfo.n_observed, rinfo.n_expected] = rt_significance(dm, clicks, proto, nshots, 'Rank', opt.rank);
+if opt.getStats
+    [rinfo.pval, rinfo.chi2, rinfo.df, rinfo.n_observed, rinfo.n_expected] = rt_significance(dm, clicks, proto, nshots, 'Rank', opt.rank);
+end
 if opt.normalize
     dm = dm / trace(dm);
 end

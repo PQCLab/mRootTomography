@@ -1,4 +1,4 @@
-function state = randstate(s, mode, r)
+function state = rt_randstate(s, mode, r)
 %RANDSTATE Generates random state
 %   Generates random state of specific dimention s
 
@@ -21,7 +21,7 @@ if strcmp(mode, 'mixed')
         r = s;
     end
     
-    [U,~,~] = svd(rand(s)+1j*rand(s));
+    [U,~,~] = svd(randn(s)+1j*randn(s));
     
     if isempty(p)
         p = rand(1,r);
