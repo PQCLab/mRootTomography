@@ -1,5 +1,5 @@
 function u = rt_randunitary(d)
-%RANDUNITARY Generates random unitary matrix of dimension sxs
+%RANDUNITARY Generates random unitary matrix of dimension dxd
 
 if nargin < 1
     d = 2;

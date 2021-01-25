@@ -59,10 +59,9 @@ addRequired(p, 'clicks');
 addRequired(p, 'proto');
 addOptional(p, 'nshots', 'sum');
 addParameter(p, 'rank', 'auto');
-addParameter(p, 'normalize', true);
 addParameter(p, 'init', 'pinv');
 addParameter(p, 'pinvOnly', false);
-addParameter(p, 'getStats', true);
+addParameter(p, 'getStats', false);
 addParameter(p, 'significanceLevel', 0.05, @(x)x>0&&x<1);
 addParameter(p, 'alpha', 0.5, @(x)x>0&&x<=1);
 addParameter(p, 'tol', 1e-8, @(x)x>0);
@@ -71,52 +70,24 @@ addParameter(p, 'display', false);
 parse(p,clicks,proto,varargin{:});
 op = p.Results;
 
-% Recursive method for automatic rank estimation
-[proto,nshots] = rt_proto_check(proto, op.nshots, clicks);
-d = size(proto{1},1);
+[proto, nshots] = rt_proto_check(proto, op.nshots, clicks);
+dim = size(proto{1}, 1);
+
 if ischar(op.rank) && strcmpi(op.rank, 'auto')
-    if op.display
-        fprintf('=== Automatic rank estimation ===\n');
-    end
-    pvalRed = false;
-    [dm_r, rinfo_r] = deal(cell(1,d));
-    for i = 1:d
-        r = i;
-        if op.display
-            fprintf('Try rank %d\n', r);
-        end
-        [dm_r{r}, rinfo_r{r}] = rt_dm_reconstruct(clicks, proto, varargin{:}, 'Rank', r);
-        if isnan(rinfo_r{r}.pval) || rinfo_r{r}.pval >= op.significanceLevel
-            break;
-        elseif r > 1 && rinfo_r{r}.pval < rinfo_r{r-1}.pval
-            pvalRed = true;
-            r = r - 1;
-            break;
-        end
-    end
-    if op.display
-        if rinfo_r{r}.pval >= op.significanceLevel
-            fprintf('Rank %d is statistically significant at significance level %s. Procedure terminated.\n', r, num2str(op.significanceLevel));
-        elseif pvalRed
-            fprintf('P-value is maximal (%s) for rank %d. Procedure terminated.\n', num2str(rinfo_r{r}.pval), r);
-        else
-            fprintf('Failed to determine optimal rank. Maximal rank %d is taken.\n', r);
-        end
-    end
-    dm = dm_r{r};
-    rinfo = rinfo_r{r};
-    rinfo.dm_r = dm_r(1:r);
-    rinfo.info_r = rinfo_r(1:r);
+    [data, ~, data_r] = rt_optimize_rank(dim, op.significanceLevel, op.display, @(r) rank_fun(clicks, proto, varargin, r));
+    dm = data.dm;
+    rinfo = rmfield(data, 'dm');
+    rinfo.data_r = data_r;
     return;
 elseif ischar(op.rank) && strcmpi(op.rank, 'full')
-    op.rank = d;
+    op.rank = dim;
 end
 
-if op.rank < 1 || op.rank > size(proto{1},1)
-    error('Density matrix rank should be between 1 and Hilbert space dimension');
+if op.rank < 1 || op.rank > dim
+    error('RT:RankValue', 'Density matrix rank should be between 1 and Hilbert space dimension');
 end
 
-ex = rt_experiment(d, 'poly');
+ex = rt_experiment(dim, 'poly', 'state');
 ex = ex.set_data('proto', proto, 'nshots', nshots, 'clicks', clicks);
 
 if strcmpi(op.init,'pinv') || op.pinvOnly
@@ -135,17 +106,23 @@ if ~op.pinvOnly
     B = ex.get_field('vec_proto');
     Ir = inv(reshape(2 * B' * ex.get_field('vec_nshots'), size(c, 1), []));
     [c, info] = optim.run(c, @(c) Ir * ex.get_dlogL_sq(c));
+    rinfo.optimizer = optim;
     rinfo.iter = info.iter;
 end
-
 dm = c*c';
+dm = dm / trace(dm);
+
 rinfo.rank = op.rank;
+rinfo.experiment = ex;
 if op.getStats
-    [rinfo.pval, rinfo.chi2, rinfo.df, rinfo.n_observed, rinfo.n_expected] = rt_significance(dm, clicks, proto, nshots, 'Rank', op.rank);
-end
-if op.normalize
-    dm = dm / trace(dm);
-end
-
+    rinfo.chi2 = ex.get_chi2_dm(dm);
+    rinfo.df = ex.get_df(op.rank);
+    rinfo.pval = rt_pval(rinfo.chi2, rinfo.df);
 end
 
+end
+
+function data = rank_fun(clicks, proto, args, r)
+    [dm, data] = rt_dm_reconstruct(clicks, proto, args{:}, 'GetStats', true, 'Rank', r);
+    data.dm = dm;
+end
