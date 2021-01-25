@@ -1,11 +1,13 @@
-function U = rt_randunitary(s)
+function u = rt_randunitary(d)
 %RANDUNITARY Generates random unitary matrix of dimension sxs
 
 if nargin < 1
-    s = 2;
+    d = 2;
 end
 
-[U,~] = svd(rand(s) + 1j*rand(s));
+[q,r] = qr(randn(d)+1j*randn(d));
+r = diag(r);
+u = q*diag(r./abs(r));
 
 end
 

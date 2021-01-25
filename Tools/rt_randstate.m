@@ -31,9 +31,9 @@ if strcmp(mode, 'mixed')
     
     state = U*diag(p)*U';
 else
-    state = rand(s,1);
+    state = randn(s,1);
     if strcmp(mode, 'complex')
-        state = state + 1j*rand(s,1);
+        state = state + 1j*randn(s,1);
     end
     state = state / sqrt(state'*state);
 end

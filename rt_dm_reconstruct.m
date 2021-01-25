@@ -72,6 +72,7 @@ parse(p,clicks,proto,varargin{:});
 op = p.Results;
 
 % Recursive method for automatic rank estimation
+[proto,nshots] = rt_proto_check(proto, op.nshots, clicks);
 d = size(proto{1},1);
 if ischar(op.rank) && strcmpi(op.rank, 'auto')
     if op.display
@@ -111,7 +112,6 @@ elseif ischar(op.rank) && strcmpi(op.rank, 'full')
     op.rank = d;
 end
 
-[proto,nshots] = rt_proto_check(proto, op.nshots, clicks);
 if op.rank < 1 || op.rank > size(proto{1},1)
     error('Density matrix rank should be between 1 and Hilbert space dimension');
 end
@@ -133,7 +133,7 @@ if ~op.pinvOnly
     optim = rt_optimizer('fixed_point');
     optim = optim.set_options('display', op.display, 'tol', op.tol, 'max_iter', op.maxIter, 'reg_coeff', op.alpha);
     B = ex.get_field('vec_proto');
-    Ir = inv(reshape(B' * ex.get_field('vec_nshots'), size(c, 1), []));
+    Ir = inv(reshape(2 * B' * ex.get_field('vec_nshots'), size(c, 1), []));
     [c, info] = optim.run(c, @(c) Ir * ex.get_dlogL_sq(c));
     rinfo.iter = info.iter;
 end

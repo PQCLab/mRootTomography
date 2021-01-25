@@ -21,7 +21,7 @@ B = rt_meas_matrix(M);
 pTol = 1e-10;
 Ntries = 100;
 for i = 1:Ntries
-    prob = real(B*reshape(c*c',[],1));
+    prob = abs(B*reshape(c*c',[],1));
     if any(prob < pTol)
         if i == Ntries
             warning('Failed to find non-singular state');

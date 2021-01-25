@@ -53,11 +53,11 @@ end
 
 [proto,nshots] = rt_proto_check(proto, op.nshots, clicks);
 if op.rank < 1 || op.rank > d2
-    error('Process matrix rank should be between 1 and Hilbert space dimension');
+    error('Process matrix rank should be between 1 and squared Hilbert space dimension');
 end
 
 ex = rt_experiment(d, 'poly');
-ex = ex.set_data('proto', proto, 'nshots', nshots, 'clicks', clicks);
+ex.set_data('proto', proto, 'nshots', nshots, 'clicks', clicks);
 
 if strcmpi(op.init,'pinv') || op.pinvOnly
     p_est = ex.get_field('vec_clicks') ./ ex.get_field('vec_nshots');
@@ -73,7 +73,7 @@ e = project_tp(e);
 rinfo.iter = 0;
 if ~op.pinvOnly
     optim = rt_optimizer('proximal_descend');
-    optim = optim.set_options('display', op.display, 'tol', op.tol, 'max_iter', op.maxIter);
+    optim.set_options('display', op.display, 'tol', op.tol, 'max_iter', op.maxIter);
     [e, info] = optim.run(e, ...
         @(e) ex.get_logL_sq(e), ...                   %% log-likelihood
         @(e) ex.get_dlogL_sq(e), ...                  %% log-likelihood gradient
@@ -84,7 +84,7 @@ if ~op.pinvOnly
 end
 
 chi = e*e';
-[rinfo.pval, rinfo.chi2, rinfo.df, rinfo.n_observed, rinfo.n_expected] = rt_significance(chi, clicks, proto, nshots, 'Rank', op.rank, 'isProcess', true);
+% [rinfo.pval, rinfo.chi2, rinfo.df, rinfo.n_observed, rinfo.n_expected] = rt_significance(chi, clicks, proto, nshots, 'Rank', op.rank, 'isProcess', true);
 rinfo.rank = op.rank;
 if op.normalize
     chi = chi / trace(chi) * d;

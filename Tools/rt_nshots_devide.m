@@ -9,8 +9,9 @@ switch method
     case 'total'
         nshots = ones(1,m)*(n/m);
     case 'total_int'
-        nshots = floor(ones(1,m)*(n/m));
-        nshots(end) = n - sum(nshots(1:(end-1)));
+        nshots = ones(1,m)*floor(n/m);
+        idx = 1:(n-sum(nshots));
+        nshots(idx) = nshots(idx) + 1;
     case 'equal'
         nshots = ones(1,m)*n;
     otherwise

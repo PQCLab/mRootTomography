@@ -4,12 +4,7 @@ function [dm, c] = rt_pinv(M, p, r)
 
 s = size(M,1);
 B = rt_meas_matrix(M);
-
-% warning('off','MATLAB:rankDeficientMatrix');
-% warning('off','MATLAB:nearlySingularMatrix');
-dm = reshape(pinv(B)*p, s, s);
-% warning('on','MATLAB:rankDeficientMatrix');
-% warning('on','MATLAB:nearlySingularMatrix');
+dm = reshape(mldivide(B,p), s, s);
 c = rt_purify(dm, r);
 dm = c*c';
 

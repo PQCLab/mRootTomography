@@ -25,7 +25,7 @@ c = rt_purify(dm,opt.rank);
 Constraints = horzcat(Constraints, [real(c(:)); imag(c(:))]);
 
 % Phase insensitivity constraint
-tol = 1e-4;
+tol = max(h)*1e-10;
 ind0 = find(h < tol);
 if length(ind0) > opt.rank^2
    warning('Information matrix has more than r^2 zero eigenvalues');

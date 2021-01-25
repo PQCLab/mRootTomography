@@ -1,4 +1,4 @@
-classdef rt_experiment
+classdef rt_experiment < handle
     %RT_STATS Summary of this class goes here
     %   Detailed explanation goes here
     
@@ -16,6 +16,9 @@ classdef rt_experiment
     methods
         function obj = rt_experiment(dim, stat_type)
             obj.dim = dim;
+            if nargin < 2
+                stat_type = 'poiss';
+            end
             switch stat_type
                 case {'poly', 'poiss'}
                     obj.stat_type = stat_type;
