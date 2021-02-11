@@ -22,10 +22,10 @@ classdef rt_experiment < handle
                 stat_type = 'poiss';
             end
             switch stat_type
-                case {'poly', 'poiss', 'bino'}
+                case {'poly', 'poiss', 'bino', 'asymp', 'auto'}
                     obj.stat_type = lower(stat_type);
                 otherwise
-                    error('RT:StatsType', 'Unknown statistics type: `%s`\n Only `poly`, `poiss` and `bino` are available', stat_type);
+                    error('RT:StatsType', 'Unknown statistics type: `%s`\n Only `poly`, `poiss`, `bino`, `asymp`, `auto` are available', stat_type);
             end
             
             if nargin < 3
@@ -41,7 +41,43 @@ classdef rt_experiment < handle
         
         function obj = set_data(obj, varargin)
             for j = 1:2:length(varargin)
-                obj.(varargin{j}) = varargin{j+1};
+                field = lower(varargin{j});
+                obj.(field) = varargin{j+1};
+                if strcmp(field, 'proto')
+                    if ~iscell(obj.proto)
+                        obj.proto = reshape(mat2cell(obj.proto, obj.dim, obj.dim, ones(1, size(obj.proto, 3))), 1, []);
+                    end
+                    if strcmp(obj.stat_type, 'auto')
+                        imat = eye(obj.dim);
+                        if all(cellfun(@(pr) norm(sum(pr, 3) - imat) < 1e-8, obj.proto)) % is povm
+                            obj.stat_type = 'poly';
+                        elseif all(cellfun(@(pr) size(pr, 3) == 1, obj.proto)) % is bino
+                            obj.stat_type = 'bino';
+                        else
+                            error('RT:StatsTypeAuto', 'Failed to determine statistics type');
+                        end
+                    end
+                    continue;
+                end
+                if strcmp(field, 'clicks')
+                    if ~iscell(obj.clicks)
+                        obj.clicks = num2cell(obj.clicks);
+                    end
+                    continue;
+                end
+            end
+            if ~isempty(obj.nshots)
+                if strcmp(obj.stat_type, 'auto') && any(isinf(obj.nshots))
+                    obj.nshots = ones(size(obj.nshots));
+                    obj.stat_type = 'asymp';
+                end
+                if ~isempty(obj.proto)
+                    if length(obj.nshots) == 1
+                        obj.nshots = rt_nshots_devide(obj.nshots, length(obj.proto));
+                    elseif length(obj.nshots) ~= length(obj.proto)
+                        error('RT:ExpNumberMismatch', 'Length of nshots array does not match length of proto array');
+                    end
+                end
             end
         end
         
@@ -72,10 +108,11 @@ classdef rt_experiment < handle
         function k = sample(obj, p, n)
             p = p(:);
             if strcmp(obj.stat_type, 'poly')
+                p = p / sum(p);
                 if n > 1e5 % normal approximation for performance
                     mu = p*n;
                     sigma = (-p*p' + diag(p))*n;
-                    k = vec(round(mvnrnd(mu, sigma)));
+                    k = reshape(round(mvnrnd(mu, sigma)), [], 1);
                     k(k < 0) = 0;
                     if sum(k) > n
                         kmind = find(k == max(k),1);
@@ -89,14 +126,17 @@ classdef rt_experiment < handle
                         k(1) = binornd(n, p(1));
                         k(2) = n - k(1);
                     else
-                        k = vec(mnrnd(n, p));
+                        k = mnrnd(n, p);
                     end
                 end
-            elseif strcmp(obj.stat_type, 'poly')
+            elseif strcmp(obj.stat_type, 'poiss')
                 k = poissrnd(p * n);
             elseif strcmp(obj.stat_type, 'bino')
                 k = binornd(n, p);
+            elseif strcmp(obj.stat_type, 'asymp')
+                k = p * n;
             end
+            k = k(:);
         end
         
         
@@ -109,7 +149,7 @@ classdef rt_experiment < handle
             elseif strcmp(obj.stat_type, 'poiss')
                 lam = obj.get_field('vec_nshots') .* p;
                 f = sum(k .* log(lam) - lam);
-            elseif strcmp(obj.stat_type, 'poiss')
+            elseif strcmp(obj.stat_type, 'bino')
                 n = obj.get_field('vec_nshots');
                 f = sum(k .* log(p) + (n - k) .* log(1 - p));
             end

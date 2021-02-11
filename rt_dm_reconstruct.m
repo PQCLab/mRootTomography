@@ -59,6 +59,7 @@ addRequired(p, 'clicks');
 addRequired(p, 'proto');
 addOptional(p, 'nshots', 'sum');
 addParameter(p, 'rank', 'auto');
+addParameter(p, 'statType', 'auto');
 addParameter(p, 'init', 'pinv');
 addParameter(p, 'pinvOnly', false);
 addParameter(p, 'getStats', false);
@@ -87,7 +88,7 @@ if op.rank < 1 || op.rank > dim
     error('RT:RankValue', 'Density matrix rank should be between 1 and Hilbert space dimension');
 end
 
-ex = rt_experiment(dim, 'poly', 'state');
+ex = rt_experiment(dim, op.statType, 'state');
 ex = ex.set_data('proto', proto, 'nshots', nshots, 'clicks', clicks);
 
 if strcmpi(op.init,'pinv') || op.pinvOnly
@@ -105,9 +106,17 @@ if ~op.pinvOnly
     optim = optim.set_options('display', op.display, 'tol', op.tol, 'max_iter', op.maxIter, 'reg_coeff', op.alpha);
     B = ex.get_field('vec_proto');
     Ir = inv(reshape(2 * B' * ex.get_field('vec_nshots'), size(c, 1), []));
-    [c, info] = optim.run(c, @(c) Ir * ex.get_dlogL_sq(c));
+    switch ex.stat_type
+        case 'poly'
+            foptim = @(c) Ir * ex.get_dlogL_sq(c);
+        case 'poiss'
+            foptim = @(c) Ir * ex.get_dlogL_sq(c) + c;
+        otherwise
+            error('RT:StatsTypeRec', 'Only `poly` and `poiss` stats are currently supported in rt_dm_reconstruct');
+    end
+    [c, optim_info] = optim.run(c, foptim);
     rinfo.optimizer = optim;
-    rinfo.iter = info.iter;
+    rinfo.iter = optim_info.iter;
 end
 dm = c*c';
 dm = dm / trace(dm);

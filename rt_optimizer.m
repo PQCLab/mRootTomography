@@ -6,14 +6,12 @@ classdef rt_optimizer < handle
         type
         fixed_point_opts = struct(...
             'display', true, ...
-            'dispfreq', 1, ...
             'max_iter', 1e6, ...
             'tol', 1e-8, ...
             'reg_coeff', 0.5 ...
         )
         proximal_descend_opts = struct(...
             'display', true, ...
-            'dispfreq', 1, ...
             'max_iter', 1e6, ...
             'tol', 1e-8 ...
         )
@@ -57,13 +55,13 @@ classdef rt_optimizer < handle
                 h = rt_fprint('Starting optimization');
             end
             x = x0;
-            for i = 1:op.max_iter
+            for j = 1:op.max_iter
                 xp = x;
                 x = (1-op.reg_coeff) * fVal(x) + op.reg_coeff * xp;
                 dx = norm(vec(xp-x));
                 stopIter = (dx < op.tol);
-                if op.display && (mod(i,op.dispfreq) == 0 || i == 1 || stopIter)
-                    h = rt_fprint(sprintf('Iteration %d \t\t Delta %.4e', i, dx), h);
+                if op.display && (mod(j,op.display) == 0 || j == 1 || stopIter)
+                    h = rt_fprint(sprintf('Iteration %d \t\t Delta %.4e', j, dx), h);
                 end
                 if stopIter
                     break;
@@ -72,7 +70,7 @@ classdef rt_optimizer < handle
             if op.display
                 fprintf('\n');
             end
-            info.iter = i;
+            info.iter = j;
         end
         
         % ========= Proximal descend ============
@@ -84,7 +82,7 @@ classdef rt_optimizer < handle
             end
 
             x1 = x0; z1 = x0; t0 = 0; t1 = 1; logL_x1 = 0;
-            for i = 1:op.max_iter
+            for j = 1:op.max_iter
                 y1 = x1 + t0/t1*(z1-x1) + (t0-1)/t1*(x1-x0);
                 z2 = fProximal(y1 + fdLogL(y1) / LipschitzConstant);
                 v2 = fProximal(x1 + fdLogL(x1) / LipschitzConstant);
@@ -104,8 +102,8 @@ classdef rt_optimizer < handle
                 logL_x1 = logL_x2;
                 stopIter = (dx < op.tol);
 
-                if op.display && (mod(i,op.dispfreq) == 0 || i == 1 || stopIter)
-                    h = rt_fprint(sprintf('Iteration %d \t\t Delta %.4e \t\t dLogL %.4e', i, dx, dlogL), h);
+                if op.display && (mod(j,op.display) == 0 || j == 1 || stopIter)
+                    h = rt_fprint(sprintf('Iteration %d \t\t Delta %.4e \t\t dLogL %.4e', j, dx, dlogL), h);
                 end
                 if stopIter
                     break;
@@ -115,7 +113,7 @@ classdef rt_optimizer < handle
                 fprintf('\n');
             end
             x = x1;
-            info.iter = i;
+            info.iter = j;
         end
     end
 end
