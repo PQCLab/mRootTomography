@@ -51,8 +51,8 @@ classdef rt_experiment < handle
                         imat = eye(obj.dim);
                         if all(cellfun(@(pr) norm(sum(pr, 3) - imat) < 1e-8, obj.proto)) % is povm
                             obj.stat_type = 'poly';
-                        elseif all(cellfun(@(pr) size(pr, 3) == 1, obj.proto)) % is bino
-                            obj.stat_type = 'bino';
+                        elseif all(cellfun(@(pr) size(pr, 3) == 1, obj.proto)) % is poiss
+                            obj.stat_type = 'poiss';
                         else
                             error('RT:StatsTypeAuto', 'Failed to determine statistics type');
                         end
