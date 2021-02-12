@@ -1,10 +1,11 @@
 % Experiment conditions
 n_exp = 500;
-dim = 4;
-r_true = 2;
-r_rec = 2;
+dim = 2;
+r_true = 1;
+r_rec = 1;
 nshots = 1e5;
 proto = rt_proto_measurement('mub', dim);
+% proto = rt_proto_measurement('tetra', 'operator+-'); % Uncomment to test Poisson stats
 
 % Generate state
 dm_true = rt_randstate(dim, r_true);
@@ -35,7 +36,7 @@ figure;
 hold on; grid on;
 histogram(1 - Fidelity, 'Normalization', 'pdf', 'DisplayName', 'Numerical Experiments');
 d = rt_dm_theory(dm_expected, proto, nshots);
-[p, df] = rt_chi2pdf_general([], d);
+[p, df] = rt_gchi2pdf([], d);
 plot(df, p, 'LineWidth', 1.5, 'DisplayName', 'Theory');
 xlabel('$$1-F$$', 'Interpreter', 'latex');
 ylabel('$$P(1-F)$$', 'Interpreter', 'latex');

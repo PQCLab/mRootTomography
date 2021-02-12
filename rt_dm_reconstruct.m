@@ -104,15 +104,13 @@ rinfo.iter = 0;
 if ~op.pinvOnly
     optim = rt_optimizer('fixed_point');
     optim = optim.set_options('display', op.display, 'tol', op.tol, 'max_iter', op.maxIter, 'reg_coeff', op.alpha);
-    B = ex.get_field('vec_proto');
-    Ir = inv(reshape(2 * B' * ex.get_field('vec_nshots'), size(c, 1), []));
-    switch ex.stat_type
-        case 'poly'
-            foptim = @(c) Ir * ex.get_dlogL_sq(c);
-        case 'poiss'
-            foptim = @(c) Ir * ex.get_dlogL_sq(c) + c;
-        otherwise
-            error('RT:StatsTypeRec', 'Only `poly` and `poiss` stats are currently supported in rt_dm_reconstruct');
+    Ir = inv(reshape(2 * (ex.get_field('vec_nshots')' * ex.get_field('vec_proto'))', size(c, 1), []));
+    if strcmp(ex.stat_type, 'poly')
+        foptim = @(c) Ir * ex.get_dlogL_sq(c);
+    elseif strcmp(ex.stat_type, 'poiss')
+        foptim = @(c) Ir * ex.get_dlogL_sq(c) + c;
+    else
+        error('RT:StatsTypeRec', 'Only `poly`, `poiss` and `bino` statistics are currently supported in rt_dm_reconstruct');
     end
     [c, optim_info] = optim.run(c, foptim);
     rinfo.optimizer = optim;

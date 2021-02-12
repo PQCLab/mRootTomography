@@ -22,10 +22,10 @@ classdef rt_experiment < handle
                 stat_type = 'poiss';
             end
             switch stat_type
-                case {'poly', 'poiss', 'bino', 'asymp', 'auto'}
+                case {'poly', 'poiss', 'asymp', 'auto'}
                     obj.stat_type = lower(stat_type);
                 otherwise
-                    error('RT:StatsType', 'Unknown statistics type: `%s`\n Only `poly`, `poiss`, `bino`, `asymp`, `auto` are available', stat_type);
+                    error('RT:StatsType', 'Unknown statistics type: `%s`\n Only `poly`, `poiss`, `asymp`, `auto` are available', stat_type);
             end
             
             if nargin < 3
@@ -94,13 +94,19 @@ classdef rt_experiment < handle
             data = obj.(field);
         end
         
-        function p = get_probs_dm(obj, dm)
+        function p = get_probs_dm(obj, dm, tol)
+            if nargin < 3
+                tol = 0;
+            end
             p = abs(obj.get_field('vec_proto') * dm(:));
-            p(p < 1e-15) = 1e-15;
+            p(p < tol) = tol;
         end
         
-        function p = get_probs_sq(obj, sq)
-            p = obj.get_probs_dm(sq * sq');
+        function p = get_probs_sq(obj, sq, tol)
+            if nargin < 3
+                tol = 0;
+            end
+            p = obj.get_probs_dm(sq * sq', tol);
         end
         
         
@@ -131,8 +137,6 @@ classdef rt_experiment < handle
                 end
             elseif strcmp(obj.stat_type, 'poiss')
                 k = poissrnd(p * n);
-            elseif strcmp(obj.stat_type, 'bino')
-                k = binornd(n, p);
             elseif strcmp(obj.stat_type, 'asymp')
                 k = p * n;
             end
@@ -142,16 +146,13 @@ classdef rt_experiment < handle
         
         % ========= Likelihood ============
         function f = get_logL_dm(obj, dm)
-            p = obj.get_probs_dm(dm);
+            p = obj.get_probs_dm(dm, 1e-15);
             k = obj.get_field('vec_clicks');
             if strcmp(obj.stat_type, 'poly')
                 f = sum(k .* log(p));
             elseif strcmp(obj.stat_type, 'poiss')
                 lam = obj.get_field('vec_nshots') .* p;
                 f = sum(k .* log(lam) - lam);
-            elseif strcmp(obj.stat_type, 'bino')
-                n = obj.get_field('vec_nshots');
-                f = sum(k .* log(p) + (n - k) .* log(1 - p));
             end
         end
         
@@ -160,7 +161,7 @@ classdef rt_experiment < handle
         end
         
         function df = get_dlogL_sq(obj, sq)
-            p = obj.get_probs_sq(sq);
+            p = obj.get_probs_sq(sq, 1e-15);
             k = obj.get_field('vec_clicks');
             B = obj.get_field('vec_proto');
             a = k ./ p;
@@ -170,10 +171,6 @@ classdef rt_experiment < handle
             elseif strcmpi(obj.stat_type, 'poiss')
                 n = obj.get_field('vec_nshots');
                 J = reshape(B' * (a - n), size(sq, 1), []);
-                df = 2 * J * sq;
-            elseif strcmpi(obj.stat_type, 'bino')
-                n = obj.get_field('vec_nshots');
-                J = reshape(B' * (a - (n - k)./(1 - p)), size(sq, 1), []);
                 df = 2 * J * sq;
             end
         end

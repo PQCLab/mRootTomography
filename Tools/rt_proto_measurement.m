@@ -25,6 +25,11 @@ switch ptype
             end
         end
     case 'tetra'
+        if isempty(varargin)
+            modifier = 'none';
+        else
+            modifier = lower(varargin{1});
+        end
         proto = cell(1,4);
         proto{1}(:,:,1) = [sqrt(3)+1 sqrt(2)*exp(1j*1*pi/4); sqrt(2)*exp(-1j*1*pi/4) sqrt(3)-1]/(2*sqrt(3));
         proto{1}(:,:,2) = [sqrt(3)-1 sqrt(2)*exp(1j*5*pi/4); sqrt(2)*exp(-1j*5*pi/4) sqrt(3)+1]/(2*sqrt(3));
@@ -34,6 +39,15 @@ switch ptype
         proto{3}(:,:,2) = [sqrt(3)-1 sqrt(2)*exp(1j*1*pi/4); sqrt(2)*exp(-1j*1*pi/4) sqrt(3)+1]/(2*sqrt(3));
         proto{4}(:,:,1) = [sqrt(3)-1 sqrt(2)*exp(1j*3*pi/4); sqrt(2)*exp(-1j*3*pi/4) sqrt(3)+1]/(2*sqrt(3));
         proto{4}(:,:,2) = [sqrt(3)+1 sqrt(2)*exp(1j*7*pi/4); sqrt(2)*exp(-1j*7*pi/4) sqrt(3)-1]/(2*sqrt(3));
+        if strcmp(modifier, 'operator+-')
+            proto = cat(3, proto{:});
+        elseif strcmp(modifier, 'operator+')
+            proto = cellfun(@(pr) pr(:,:,1), proto, 'UniformOutput', false);
+            proto = cat(3, proto{:});
+        elseif strcmp(modifier, 'operator-')
+            proto = cellfun(@(pr) pr(:,:,2), proto, 'UniformOutput', false);
+            proto = cat(3, proto{:});
+        end
     otherwise
         error('RT:UnknownProto', 'Unknown measurement protocol type `%s`', ptype);
 end

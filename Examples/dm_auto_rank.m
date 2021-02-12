@@ -1,8 +1,9 @@
 % Experiment conditions
-dim = 4;
-r_true = 2;
+dim = 2;
+r_true = 1;
 nshots = 1e3;
 proto = rt_proto_measurement('mub', dim);
+% proto = rt_proto_measurement('tetra', 'operator+-'); % Uncomment to test Poisson stats
 
 % Generate state and data
 dm_true = rt_randstate(dim, r_true);

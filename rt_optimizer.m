@@ -81,7 +81,7 @@ classdef rt_optimizer < handle
                 h = rt_fprint('Starting optimization');
             end
 
-            x1 = x0; z1 = x0; t0 = 0; t1 = 1; logL_x1 = 0;
+            x1 = x0; z1 = x0; t0 = 0; t1 = 1;
             for j = 1:op.max_iter
                 y1 = x1 + t0/t1*(z1-x1) + (t0-1)/t1*(x1-x0);
                 z2 = fProximal(y1 + fdLogL(y1) / LipschitzConstant);
@@ -89,21 +89,19 @@ classdef rt_optimizer < handle
                 logL_z2 = fLogL(z2);
                 logL_v2 = fLogL(v2);
                 if logL_z2 >= logL_v2
-                    x2 = z2; logL_x2 = logL_z2;
+                    x2 = z2;
                 else
-                    x2 = v2; logL_x2 = logL_v2;
+                    x2 = v2;
                 end
 
                 x0 = x1; x1 = x2; z1 = z2;
                 t0 = t1; t1 = (sqrt(4*t0^2+1)+1)/2;
 
                 dx = norm(vec(x1 - x0));
-                dlogL = logL_x2 - logL_x1;
-                logL_x1 = logL_x2;
                 stopIter = (dx < op.tol);
 
                 if op.display && (mod(j,op.display) == 0 || j == 1 || stopIter)
-                    h = rt_fprint(sprintf('Iteration %d \t\t Delta %.4e \t\t dLogL %.4e', j, dx, dlogL), h);
+                    h = rt_fprint(sprintf('Iteration %d \t\t Delta %.4e', j, dx), h);
                 end
                 if stopIter
                     break;
