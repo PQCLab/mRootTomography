@@ -1,31 +1,27 @@
-function P = rt_proto_preparation(type, N)
-%rt_PROTOCOL_PREPARATION Generates preparation protocol
+function proto = rt_proto_preparation(ptype, varargin)
+%RT_PROTO_PREPARATION Generates preparation protocol
 %   INPUT:
-%   type - protocol type
-%       'cube' - Cube protocol (pure eigenstates of s_x, s_y, s_z)
-%   N - number of qubits
-%   Ep (optional) - NG-model fuzzy measurement operators (see paper)
-%       Ep(:,:,k) - k-th Kraus operator
+%   ptype - protocol type
+%       'mub' - Mutually-unbiased bases (MUB) vectors
+%       'tetra' - Tetrahedron qubit vectors
+%       'octa' - Octahedron qubit vectors
+%   varargin - protocol params
 %
 %   OUTPUT:
-%   P - preparation density matrices
-%       P0(:,:,i) - density matrix of the i-th input state
+%   proto - preparation density matrices
+%       proto(:,:,j) - j-th preparation density matrix
 
-if strcmpi(type, 'cube')
-    P0 = zeros(2,2,6);
-    P0(:,:,1) = [1 1; 1 1]/2;
-    P0(:,:,2) = [1 -1; -1 1]/2;
-    P0(:,:,3) = [1 -1j; 1j 1]/2;
-    P0(:,:,4) = [1 1j; -1j 1]/2;
-    P0(:,:,5) = [1 0; 0 0];
-    P0(:,:,6) = [0 0; 0 1];
-else
-    error('Unknown preparation protocol');
-end
-
-P = 1;
-for j = 1:N
-    P = rt_kron3d(P, P0);
+switch ptype
+    case 'mub'
+        dim = varargin{1};
+        proto = rt_proto_measurement('mub', dim);
+        proto = cat(3, proto{:});
+    case 'tetra'
+        proto = rt_proto_measurement('tetra', 'operator+');
+    case 'octa'
+        proto = rt_proto_measurement('tetra', 'operator+-');
+    otherwise
+        error('RT:UnknownProto', 'Unknown preparation protocol type `%s`', ptype);
 end
 
 end

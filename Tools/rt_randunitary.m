@@ -1,13 +1,9 @@
-function u = rt_randunitary(d)
+function u = rt_randunitary(dim)
 %RANDUNITARY Generates random unitary matrix of dimension dxd
 
-if nargin < 1
-    d = 2;
-end
-
-[q,r] = qr(randn(d)+1j*randn(d));
+[q, r] = qr(randn(dim) + 1j * randn(dim));
 r = diag(r);
-u = q*diag(r./abs(r));
+u = q * diag(r ./ abs(r));
 
 end
 

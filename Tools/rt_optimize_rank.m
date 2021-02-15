@@ -10,7 +10,7 @@ pvalRed = false;
 data_r = deal(cell(1,dim));
 for r = 1:dim
     if display
-        fprintf('Try rank %d\n', r);
+        fprintf('=> Try rank %d\n', r);
     end
     data_r{r} = fData(r);
     if isnan(data_r{r}.pval) || data_r{r}.pval >= sl
@@ -24,11 +24,11 @@ end
 
 if display
     if data_r{r}.pval >= sl
-        fprintf('Rank %d is statistically significant at significance level %s. Procedure terminated.\n', r, num2str(sl));
+        fprintf('=> Rank %d is statistically significant at significance level %s. Procedure terminated.\n', r, num2str(sl));
     elseif pvalRed
-        fprintf('P-value is maximal (%s) for rank %d. Procedure terminated.\n', num2str(data_r{r}.pval), r);
+        fprintf('=> P-value is maximal (%s) for rank %d. Procedure terminated.\n', num2str(data_r{r}.pval), r);
     else
-        fprintf('Failed to determine optimal rank. Maximal rank %d is taken.\n', r);
+        fprintf('=> Failed to determine optimal rank. Maximal rank %d is taken.\n', r);
     end
 end
 

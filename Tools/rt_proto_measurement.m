@@ -13,14 +13,14 @@ function proto = rt_proto_measurement(ptype, varargin)
 
 switch ptype
     case 'mub'
-        d = varargin{1};
-        pname = ['mub', num2str(d)];
+        dim = varargin{1};
+        pname = ['mub', num2str(dim)];
         mubs = load('mubs.mat', pname);
         mubs = mubs.(pname);
-        proto = cell(1, d + 1);
-        for j = 1:(d+1)
-            proto{j} = zeros(d, d, d);
-            for k = 1:d
+        proto = cell(1, dim + 1);
+        for j = 1:(dim+1)
+            proto{j} = zeros(dim, dim, dim);
+            for k = 1:dim
                 proto{j}(:,:,k) = mubs(:,k,j) * mubs(:,k,j)';
             end
         end

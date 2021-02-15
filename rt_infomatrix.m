@@ -1,12 +1,13 @@
-function h = rt_infomatrix(dm, proto, nshots, varargin)
+function h = rt_infomatrix(dm, proto, nshots, objType, varargin)
 % RT_INFOMATRIX TODO
 p = inputParser;
 p.KeepUnmatched = true;
 addRequired(p, 'dm');
 addRequired(p, 'proto');
 addRequired(p, 'nshots');
-addOptional(p, 'rank', 'dm');
-parse(p,dm,proto,nshots,varargin{:});
+addRequired(p, 'objType');
+addParameter(p, 'rank', 'dm');
+parse(p, dm, proto, nshots, objType, varargin{:});
 opt = p.Results;
 
 if ischar(opt.rank) && strcmp(opt.rank,'dm')
@@ -14,8 +15,11 @@ if ischar(opt.rank) && strcmp(opt.rank,'dm')
 end
 
 dim = size(dm, 1);
+if strcmpi(opt.objType, 'process')
+    dim = sqrt(dim);
+end
 c = rt_purify(dm, opt.rank);
-ex = rt_experiment(dim, 'auto', 'state');
+ex = rt_experiment(dim, opt.objType);
 ex.set_data('proto', proto, 'nshots', nshots);
 
 % Find close state with no zeros probabilities

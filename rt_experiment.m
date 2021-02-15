@@ -15,11 +15,11 @@ classdef rt_experiment < handle
     end
     
     methods
-        function obj = rt_experiment(dim, stat_type, obj_type)
+        function obj = rt_experiment(dim, obj_type, stat_type)
             obj.dim = dim;
             
-            if nargin < 2
-                stat_type = 'poiss';
+            if nargin < 3
+                stat_type = 'auto';
             end
             switch stat_type
                 case {'poly', 'poiss', 'asymp', 'auto'}
@@ -28,9 +28,6 @@ classdef rt_experiment < handle
                     error('RT:StatsType', 'Unknown statistics type: `%s`\n Only `poly`, `poiss`, `asymp`, `auto` are available', stat_type);
             end
             
-            if nargin < 3
-                obj_type = 'state';
-            end
             switch obj_type
                 case {'state', 'process'}
                     obj.obj_type = lower(obj_type);
@@ -44,17 +41,35 @@ classdef rt_experiment < handle
                 field = lower(varargin{j});
                 obj.(field) = varargin{j+1};
                 if strcmp(field, 'proto')
-                    if ~iscell(obj.proto)
-                        obj.proto = reshape(mat2cell(obj.proto, obj.dim, obj.dim, ones(1, size(obj.proto, 3))), 1, []);
+                    % Check whether the process protocol is set as
+                    % prepare-measure pairs and transform to chi-matrix
+                    % measurement operators
+                    if strcmp(obj.obj_type, 'process') && iscell(obj.proto) && all(size(obj.proto) > 1)
+                        if size(obj.proto, 2) == 2
+                            obj.proto = transpose(obj.proto);
+                        end
+                        obj.proto = cellfun(@(prep, meas) rt_kron3d(conj(prep), meas), obj.proto(1,:), obj.proto(2,:), 'UniformOutput', false);
                     end
+                    % Check whether the protocol is set as 3d array and
+                    % transform it ti cell array
+                    if ~iscell(obj.proto)
+                        dims = size(obj.proto);
+                        obj.proto = mat2cell(obj.proto, dims(1), dims(2), ones(1, dims(3)));
+                    end
+                    obj.proto = reshape(obj.proto, 1, []);
+                    % Check whether the statistics type is set to `auto`
+                    % and determine statistics according to the protocol
+                    % operators
                     if strcmp(obj.stat_type, 'auto')
                         imat = eye(obj.dim);
-                        if all(cellfun(@(pr) norm(sum(pr, 3) - imat) < 1e-8, obj.proto)) % is povm
-                            obj.stat_type = 'poly';
-                        elseif all(cellfun(@(pr) size(pr, 3) == 1, obj.proto)) % is poiss
+                        if all(cellfun(@(pr) size(pr, 3) == 1, obj.proto)) % is poiss
                             obj.stat_type = 'poiss';
+                        elseif strcmp(obj.obj_type, 'state') && all(cellfun(@(pr) norm(sum(pr, 3) - imat) < 1e-8, obj.proto)) % is state povm
+                            obj.stat_type = 'poly';
+                        elseif strcmp(obj.obj_type, 'process') && all(cellfun(@(pr) norm(rt_prttrace(sum(pr, 3), [obj.dim, obj.dim], 1) - imat) < 1e-8, obj.proto)) % is process povm
+                            obj.stat_type = 'poly';
                         else
-                            error('RT:StatsTypeAuto', 'Failed to determine statistics type');
+                            error('RT:StatsTypeAuto', 'Failed to determine statistics type. Please, specify stat_type manually.');
                         end
                     end
                     continue;
@@ -73,8 +88,8 @@ classdef rt_experiment < handle
                 end
                 if ~isempty(obj.proto)
                     if length(obj.nshots) == 1
-                        obj.nshots = rt_nshots_devide(obj.nshots, length(obj.proto));
-                    elseif length(obj.nshots) ~= length(obj.proto)
+                        obj.nshots = rt_nshots_devide(obj.nshots, size(obj.proto, 2));
+                    elseif length(obj.nshots) ~= size(obj.proto, 2)
                         error('RT:ExpNumberMismatch', 'Length of nshots array does not match length of proto array');
                     end
                 end
@@ -109,8 +124,15 @@ classdef rt_experiment < handle
             p = obj.get_probs_dm(sq * sq', tol);
         end
         
-        
         % ========= Sampling ============
+        function clicks = simulate(obj, dm)
+            clicks = cell(size(obj.proto));
+            for j = 1:numel(obj.proto)
+                probs = abs(rt_meas_matrix(obj.proto{j}) * dm(:));
+                clicks{j} = obj.sample(probs, obj.nshots(j));
+            end
+        end
+        
         function k = sample(obj, p, n)
             p = p(:);
             if strcmp(obj.stat_type, 'poly')
@@ -142,7 +164,6 @@ classdef rt_experiment < handle
             end
             k = k(:);
         end
-        
         
         % ========= Likelihood ============
         function f = get_logL_dm(obj, dm)
@@ -190,7 +211,8 @@ classdef rt_experiment < handle
             if strcmpi(obj.obj_type, 'state')
                 nu = (2*obj.dim - obj_rank)*obj_rank - 1;
             elseif strcmpi(obj.obj_type, 'process')
-                nu = (2*obj.dim - obj_rank)*obj_rank - obj.dim;
+                dim2 = obj.dim^2;
+                nu = (2*dim2 - obj_rank)*obj_rank - dim2;
             end
             df = df - nu;
         end

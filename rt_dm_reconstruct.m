@@ -1,4 +1,4 @@
-function [dm, rinfo] = rt_dm_reconstruct(clicks, proto, varargin)
+function [dm, rinfo] = rt_dm_reconstruct(dim, clicks, proto, varargin)
 %RT_DM_RECONSTRUCT Performs the quantum state reconstruction using root
 %approach and maximum likelihood. Detail explanation of the algorithm could
 %be found in the paper [Borganov Yu. I., JETP 108(6) 2009] 
@@ -55,6 +55,7 @@ function [dm, rinfo] = rt_dm_reconstruct(clicks, proto, varargin)
 %Website: https://github.com/PQCLab/RootTomography
 p = inputParser;
 p.KeepUnmatched = true;
+addRequired(p, 'dim');
 addRequired(p, 'clicks');
 addRequired(p, 'proto');
 addOptional(p, 'nshots', 'sum');
@@ -68,14 +69,11 @@ addParameter(p, 'alpha', 0.5, @(x)x>0&&x<=1);
 addParameter(p, 'tol', 1e-8, @(x)x>0);
 addParameter(p, 'maxIter', 1e6, @(x)x>0);
 addParameter(p, 'display', false);
-parse(p,clicks,proto,varargin{:});
+parse(p, dim, clicks, proto, varargin{:});
 op = p.Results;
 
-[proto, nshots] = rt_proto_check(proto, op.nshots, clicks);
-dim = size(proto{1}, 1);
-
 if ischar(op.rank) && strcmpi(op.rank, 'auto')
-    [data, ~, data_r] = rt_optimize_rank(dim, op.significanceLevel, op.display, @(r) rank_fun(clicks, proto, varargin, r));
+    [data, ~, data_r] = rt_optimize_rank(dim, op.significanceLevel, op.display, @(r) rank_fun(dim, clicks, proto, varargin, r));
     dm = data.dm;
     rinfo = rmfield(data, 'dm');
     rinfo.data_r = data_r;
@@ -88,15 +86,19 @@ if op.rank < 1 || op.rank > dim
     error('RT:RankValue', 'Density matrix rank should be between 1 and Hilbert space dimension');
 end
 
-ex = rt_experiment(dim, op.statType, 'state');
-ex = ex.set_data('proto', proto, 'nshots', nshots, 'clicks', clicks);
+ex = rt_experiment(dim, 'state', op.statType);
+ex.set_data('proto', op.proto, 'clicks', op.clicks);
+if ischar(op.nshots) && strcmpi(op.nshots, 'sum')
+    op.nshots = cellfun(@(kj) sum(kj), ex.clicks);
+end
+ex.set_data('nshots', op.nshots);
 
-if strcmpi(op.init,'pinv') || op.pinvOnly
+if strcmpi(op.init, 'pinv') || op.pinvOnly
     p_est = ex.get_field('vec_clicks') ./ ex.get_field('vec_nshots');
-    [~, c] = rt_pinv(cat(3,proto{:}), p_est, op.rank);
+    [~, c] = rt_pinv(cat(3, ex.proto{:}), p_est, op.rank);
 end
 
-if ~strcmpi(op.init,'pinv')
+if ~strcmpi(op.init, 'pinv')
     c = rt_purify(op.init, op.rank);
 end
 
@@ -129,7 +131,7 @@ end
 
 end
 
-function data = rank_fun(clicks, proto, args, r)
-    [dm, data] = rt_dm_reconstruct(clicks, proto, args{:}, 'GetStats', true, 'Rank', r);
+function data = rank_fun(dim, clicks, proto, args, r)
+    [dm, data] = rt_dm_reconstruct(dim, clicks, proto, args{:}, 'GetStats', true, 'Rank', r);
     data.dm = dm;
 end
