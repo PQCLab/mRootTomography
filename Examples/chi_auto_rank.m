@@ -1,7 +1,7 @@
 % Experiment conditions
 n_exp = 500;
 dim = 2;
-r_true = 3;
+r_true = 1;
 nshots = 1e5;
 proto_prep = rt_proto_preparation('tetra');
 proto_meas = rt_proto_measurement('mub', dim);

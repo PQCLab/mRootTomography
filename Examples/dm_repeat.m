@@ -4,8 +4,8 @@ dim = 2;
 r_true = 1;
 r_rec = 1;
 nshots = 1e5;
-% proto = rt_proto_measurement('mub', dim);
-proto = rt_proto_measurement('tetra', 'operator+-'); % Uncomment to test Poisson stats
+proto = rt_proto_measurement('mub', dim);
+% proto = rt_proto_measurement('tetra', 'operator+-'); % Uncomment to test Poisson stats
 
 % Generate state
 dm_true = rt_randstate(dim, 'Rank', r_true);
