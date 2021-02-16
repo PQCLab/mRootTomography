@@ -11,6 +11,7 @@ addRequired(p, 'clicks');
 addRequired(p, 'proto');
 addOptional(p, 'nshots', 'sum');
 addParameter(p, 'rank', 'auto');
+addParameter(p, 'statType', 'auto');
 addParameter(p, 'init', 'pinv');
 addParameter(p, 'pinvOnly', false);
 addParameter(p, 'getStats', false);
@@ -36,7 +37,7 @@ if op.rank < 1 || op.rank > dim^2
     error('RT:RankValue', 'Process matrix rank should be between 1 and squared Hilbert space dimension');
 end
 
-ex = rt_experiment(dim, 'process');
+ex = rt_experiment(dim, 'process', op.statType);
 ex.set_data('proto', op.proto, 'clicks', op.clicks);
 if ischar(op.nshots) && strcmpi(op.nshots, 'sum')
     op.nshots = cellfun(@(kj) sum(kj), ex.clicks);
@@ -57,10 +58,10 @@ if op.tracePreserving
         optim = rt_optimizer('proximal_descend');
         optim.set_options('display', op.display, 'tol', op.tol, 'max_iter', op.maxIter);
         [e, info] = optim.run(e, ...
-            @(e) ex.get_logL_sq(e), ...                     %% log-likelihood
-            @(e) ex.get_dlogL_sq(e), ...                    %% log-likelihood gradient
-            @(e) project_tp(e / sqrt(trace(e'*e)/dim)), ... %% proximal operation
-            sum(op.nshots) ...                              %% Lipschitz constant
+            @(e) ex.get_logL_sq(e), ...                         %% log-likelihood
+            @(e) ex.get_dlogL_sq(e), ...                        %% log-likelihood gradient
+            @(e) project_tp(e / sqrt(trace(e'*e) / dim)), ...   %% proximal operation
+            10 * sum(op.nshots) ...                             %% Lipschitz constant
             );
         rinfo.optimizer = optim;
         rinfo.iter = info.iter;
@@ -68,6 +69,9 @@ if op.tracePreserving
     chi = e*e';
     chi = chi / trace(chi) * dim;
 else
+    if strcmp(ex.stat_type, 'poly')
+        warning('RT:PolyStatNonTPProcess', 'Polynomial statistics is incompatible with non trace preserving processes');
+    end
     [chi, rinfo] = rt_dm_reconstruct(dim^2, ex.clicks, ex.proto, varargin{:}, 'statType', ex.stat_type, 'Rank', op.rank, 'getStats', false);
     chi = chi * dim;
     ex = rinfo.experiment;
@@ -84,14 +88,14 @@ end
 end
 
 function e = project_tp(e)
-    [d2, r] = size(e);
+    [dim2, r] = size(e);
     tr = trace(e*e');
-    d = sqrt(d2);
-    ue = transpose(reshape(permute(reshape(e,[d,d,r]),[2,1,3]),d,[]));
-    [u,~,v] = svd(ue, 'econ');
-    ue = u*v';
-    e = reshape(permute(reshape(transpose(ue),[d,d,r]),[2,1,3]),[d2,r]);
-    e = e / sqrt(trace(e*e')/tr);
+    dim = sqrt(dim2);
+    ue = transpose(reshape(permute(reshape(e, [dim, dim, r]), [2, 1, 3]), dim, []));
+    [u, ~, v] = svd(ue, 'econ');
+    ue = u * v';
+    e = reshape(permute(reshape(transpose(ue), [dim, dim, r]), [2, 1, 3]), [dim2, r]);
+    e = e / sqrt(trace(e*e') / tr);
 end
 
 function data = rank_fun(dim, clicks, proto, args, r)

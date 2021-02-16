@@ -2,10 +2,10 @@
 n_exp = 500;
 dim = 2;
 r_true = 1;
-nshots = 1e5;
+nshots = 1e3;
 proto_prep = rt_proto_preparation('tetra');
-proto_meas = rt_proto_measurement('mub', dim);
-% proto_meas = rt_proto_measurement('tetra', 'operator+-'); % Uncomment to test Poisson stats
+proto_meas = rt_proto_measurement('mub', 'dim', dim);
+% proto_meas = rt_proto_measurement('tetra', 'modifier', 'operator'); % Uncomment to test Poisson stats
 proto = rt_proto_process(proto_prep, proto_meas);
 
 % Generate state and data

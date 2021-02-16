@@ -19,7 +19,7 @@ if strcmpi(opt.objType, 'process')
     dim = sqrt(dim);
 end
 c = rt_purify(dm, opt.rank);
-ex = rt_experiment(dim, opt.objType);
+ex = rt_experiment(dim, opt.objType, 'poiss');
 ex.set_data('proto', proto, 'nshots', nshots);
 
 % Find close state with no zeros probabilities

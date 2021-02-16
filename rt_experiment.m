@@ -136,10 +136,16 @@ classdef rt_experiment < handle
         function k = sample(obj, p, n)
             p = p(:);
             if strcmp(obj.stat_type, 'poly')
+                if abs(sum(p) - 1) > 1e-8
+                    error('RT:PolyDistributionNorm', 'For simulating polynomial statistics probabilities in each measurement should sum to unity');
+                end
                 p = p / sum(p);
                 if n > 1e5 % normal approximation for performance
                     mu = p*n;
                     sigma = (-p*p' + diag(p))*n;
+                    [u, d] = eigs(sigma, rank(sigma));
+                    d(d < 0) = 0;
+                    sigma = u * d * u';
                     k = reshape(round(mvnrnd(mu, sigma)), [], 1);
                     k(k < 0) = 0;
                     if sum(k) > n

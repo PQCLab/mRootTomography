@@ -12,11 +12,6 @@ parse(p, dm, proto, nshots, objType, varargin{:});
 opt = p.Results;
 
 dim = size(dm, 1);
-if strcmpi(opt.objType, 'process') && ~opt.tracePreserving
-    d = rt_dm_theory(dm, proto, nshots, 'state', varargin{:}) / sqrt(dim);
-    return;
-end
-
 dm = dm / trace(dm);
 H = rt_infomatrix(dm, proto, nshots, opt.objType, 'rank', opt.rank);
 
@@ -24,12 +19,12 @@ Constraints = [];
 [Uh, Sh] = eig(H);
 h = diag(Sh);
 
-if strcmpi(opt.objType, 'state')
+if strcmpi(opt.objType, 'state') || (strcmpi(opt.objType, 'process') && ~opt.tracePreserving)
     % Normalization constraint
     if ischar(opt.rank) && strcmp(opt.rank,'dm')
         opt.rank = rank(dm);
     end
-    c = rt_purify(dm,opt.rank);
+    c = rt_purify(dm, opt.rank);
     Constraints = horzcat(Constraints, [real(c(:)); imag(c(:))]);
 elseif strcmpi(opt.objType, 'process')
     % Trace preserving constraint
