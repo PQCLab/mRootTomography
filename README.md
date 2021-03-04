@@ -4,11 +4,8 @@ MATLAB library for the discrete variables quantum state and quantum process tomo
 
 - [Getting Started](#start)
 - [Definitions, algorithms and data format](#format)
-- [Examples](#examples)
-	* [Quantum state tomography](#qst)
-	* [Fidelity distribution](#fidelity)
-- [Algorithms](#algorithms)
-- [References](#references)
+- [Example of quantum state tomography](#example)
+- [Licence](#licence)
 
 ## <a name="start">Getting Started</a>
 
@@ -26,7 +23,7 @@ To install the library clone the repository or download and unpack zip-archive. 
 
 For the entities definitions, algorithms description and required data format see full product [documentation](Documentation.md).
 
-## <a name="examples">Example of quantum state tomography</a>
+## <a name="example">Example of quantum state tomography</a>
 
 Examples directory of the project contains a set of examples that show basic features of the library. Below we briefly review the quantum state tomography example.
 
@@ -94,3 +91,7 @@ sum(d) % Mean infidelity
 2*sum(d.^2) % Infidelity variance
 1-sum(d) % Mean fidelity
 ```
+
+## <a name="licence">Licence</a>
+
+All code found in this repository is licensed under GPL v3
