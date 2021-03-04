@@ -10,7 +10,7 @@ switch desc
         else
             r = varargin{1};
         end
-        proc = rt_purify(proc, r);
+        proc = rt_purify(proc, r) * sqrt(trace(proc));
     case 'root2chi'
         proc = proc * proc';
     case 'root2kraus'

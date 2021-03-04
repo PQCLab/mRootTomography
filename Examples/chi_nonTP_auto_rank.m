@@ -12,8 +12,21 @@ clicks = rt_experiment(dim, 'process', 'poiss')...
     .set_data('proto', proto, 'nshots', nshots)...
     .simulate(chi_true);
 
-% Reconstruct process and compare to expected one (the true one in our case)
-chi_expected = chi_true;
+% Reconstruct process and compare to the true one
 chi_rec = rt_chi_reconstruct(dim, clicks, proto, nshots, 'Display', 10, 'tracePreserving', false, 'StatType', 'poiss');
-Fidelity = rt_fidelity(chi_rec, chi_expected);
+Fidelity = rt_fidelity(chi_rec, chi_true);
 fprintf('Fidelity: %.6f\n', Fidelity);
+
+% Calculate fiducial fidelity bound
+d = rt_bound(chi_rec, proto, nshots, 'process', 'tracePreserving', false);
+Fidelity5 = 1 - rt_gchi2inv(0.05, d);
+fprintf('Fiducial 5%% fidelity bound: %.6f\n', Fidelity5);
+
+% Plot infidelity distribution
+d = rt_bound(chi_true, proto, nshots, 'process', 'tracePreserving', false);
+[p, df] = rt_gchi2pdf([], d);
+figure; hold on; grid on;
+plot(df, p, 'LineWidth', 1.5, 'DisplayName', 'Theory');
+plot([1,1] * (1 - Fidelity), ylim, 'LineWidth', 1.5, 'DisplayName', 'Reconstruction');
+xlabel('$$1-F$$', 'Interpreter', 'latex');
+legend('show');

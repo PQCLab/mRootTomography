@@ -59,13 +59,12 @@ addRequired(p, 'dim');
 addRequired(p, 'clicks');
 addRequired(p, 'proto');
 addOptional(p, 'nshots', 'sum');
-addParameter(p, 'rank', 'auto');
 addParameter(p, 'statType', 'auto');
-addParameter(p, 'init', 'pinv');
-addParameter(p, 'pinvOnly', false);
-addParameter(p, 'getStats', false);
+addParameter(p, 'rank', 'auto');
 addParameter(p, 'significanceLevel', 0.05, @(x)x>0&&x<1);
-addParameter(p, 'alpha', 0.5, @(x)x>0&&x<=1);
+addParameter(p, 'getStats', false);
+addParameter(p, 'init', 'pinv');
+addParameter(p, 'regCoeff', 0.5, @(x)x>0&&x<=1);
 addParameter(p, 'tol', 1e-8, @(x)x>0);
 addParameter(p, 'maxIter', 1e6, @(x)x>0);
 addParameter(p, 'display', false);
@@ -73,7 +72,9 @@ parse(p, dim, clicks, proto, varargin{:});
 op = p.Results;
 
 if ischar(op.rank) && strcmpi(op.rank, 'auto')
-    [data, ~, data_r] = rt_optimize_rank(dim, op.significanceLevel, op.display, @(r) rank_fun(dim, clicks, proto, varargin, r));
+    optim = rt_optimizer('auto_rank');
+    optim.set_options('display', op.display, 'sl', op.significanceLevel);
+    [data, data_r] = optim.run(dim, @(r) rank_fun(dim, clicks, proto, varargin, r));
     dm = data.dm;
     rinfo = rmfield(data, 'dm');
     rinfo.data_r = data_r;
@@ -88,36 +89,32 @@ end
 
 ex = rt_experiment(dim, 'state', op.statType);
 ex.set_data('proto', op.proto, 'clicks', op.clicks);
-if ischar(op.nshots) && strcmpi(op.nshots, 'sum')
+if strcmpi(op.nshots, 'sum')
     op.nshots = cellfun(@(kj) sum(kj), ex.clicks);
 end
 ex.set_data('nshots', op.nshots);
 
-if strcmpi(op.init, 'pinv') || op.pinvOnly
+if strcmpi(op.init, 'pinv')
     p_est = ex.get_field('vec_clicks') ./ ex.get_field('vec_nshots');
     [~, c] = rt_pinv(cat(3, ex.proto{:}), p_est, op.rank);
-end
-
-if ~strcmpi(op.init, 'pinv')
+else
     c = rt_purify(op.init, op.rank);
 end
 
-rinfo.iter = 0;
-if ~op.pinvOnly
-    optim = rt_optimizer('fixed_point');
-    optim = optim.set_options('display', op.display, 'tol', op.tol, 'max_iter', op.maxIter, 'reg_coeff', op.alpha);
-    Ir = inv(reshape(2 * (ex.get_field('vec_nshots')' * ex.get_field('vec_proto'))', size(c, 1), []));
-    if strcmp(ex.stat_type, 'poly')
-        foptim = @(c) Ir * ex.get_dlogL_sq(c);
-    elseif strcmp(ex.stat_type, 'poiss')
-        foptim = @(c) Ir * ex.get_dlogL_sq(c) + c;
-    else
-        error('RT:StatsTypeRec', 'Only `poly`, `poiss` and `bino` statistics are currently supported in rt_dm_reconstruct');
-    end
-    [c, optim_info] = optim.run(c, foptim);
-    rinfo.optimizer = optim;
-    rinfo.iter = optim_info.iter;
+optim = rt_optimizer('fixed_point');
+optim = optim.set_options('display', op.display, 'tol', op.tol, 'max_iter', op.maxIter, 'reg_coeff', op.regCoeff);
+Ir = inv(reshape(2 * (ex.get_field('vec_nshots')' * ex.get_field('vec_proto'))', size(c, 1), []));
+if strcmp(ex.stat_type, 'poly')
+    foptim = @(c) Ir * ex.get_dlogL_sq(c);
+elseif strcmp(ex.stat_type, 'poiss')
+    foptim = @(c) Ir * ex.get_dlogL_sq(c) + c;
+else
+    error('RT:StatsTypeRec', 'Only `poly`, `poiss` and `bino` statistics are currently supported in rt_dm_reconstruct');
 end
+[c, optim_info] = optim.run(c, foptim);
+rinfo.optimizer = optim;
+rinfo.iter = optim_info.iter;
+
 dm = c*c';
 dm = dm / trace(dm);
 

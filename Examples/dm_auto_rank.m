@@ -1,5 +1,5 @@
 % Experiment conditions
-dim = 2;
+dim = 4;
 r_true = 1;
 nshots = 1e3;
 proto = rt_proto_measurement('mub', 'dim', dim);
@@ -11,8 +11,21 @@ clicks = rt_experiment(dim, 'state')...
     .set_data('proto', proto, 'nshots', nshots)...
     .simulate(dm_true);
 
-% Reconstruct state and compare to expected one (the true one in our case)
-dm_expected = dm_true;
-[dm_rec, rinfo] = rt_dm_reconstruct(dim, clicks, proto, nshots, 'significanceLevel', 0.01, 'Display', 10);
-Fidelity = rt_fidelity(dm_rec, dm_expected);
+% Reconstruct state and compare to the true one
+dm_rec = rt_dm_reconstruct(dim, clicks, proto, nshots, 'Display', 10);
+Fidelity = rt_fidelity(dm_rec, dm_true);
 fprintf('Fidelity: %.6f\n', Fidelity);
+
+% Calculate fiducial fidelity bound
+d = rt_bound(dm_rec, proto, nshots, 'state');
+Fidelity95 = 1 - rt_gchi2inv(0.95, d);
+fprintf('Fiducial 95%% fidelity bound: %.6f\n', Fidelity95);
+
+% Plot infidelity distribution
+d = rt_bound(dm_true, proto, nshots, 'state');
+[p, df] = rt_gchi2pdf([], d);
+figure; hold on; grid on;
+plot(df, p, 'LineWidth', 1.5, 'DisplayName', 'Theory');
+plot([1,1] * (1 - Fidelity), ylim, 'LineWidth', 1.5, 'DisplayName', 'Reconstruction');
+xlabel('$$1-F$$', 'Interpreter', 'latex');
+legend('show');

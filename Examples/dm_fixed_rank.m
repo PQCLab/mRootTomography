@@ -12,14 +12,18 @@ clicks = rt_experiment(dim, 'state')...
     .set_data('proto', proto, 'nshots', nshots)...
     .simulate(dm_true);
 
-% Reconstruct state and compare to expected one (the true one in our case)
-dm_expected = dm_true;
+% Reconstruct state and compare to the true one
 dm_rec = rt_dm_reconstruct(dim, clicks, proto, nshots, 'Rank', r_rec, 'Display', true);
-Fidelity = rt_fidelity(dm_rec, dm_expected);
+Fidelity = rt_fidelity(dm_rec, dm_true);
 fprintf('Fidelity: %.6f\n', Fidelity);
 
+% Calculate fiducial fidelity bound
+d = rt_bound(dm_rec, proto, nshots, 'state');
+Fidelity5 = 1 - rt_gchi2inv(0.05, d);
+fprintf('Fiducial 5%% fidelity bound: %.6f\n', Fidelity5);
+
 % Plot infidelity distribution
-d = rt_bound(dm_expected, proto, nshots, 'state');
+d = rt_bound(dm_true, proto, nshots, 'state');
 [p, df] = rt_gchi2pdf([], d);
 figure; hold on; grid on;
 plot(df, p, 'LineWidth', 1.5, 'DisplayName', 'Theory');

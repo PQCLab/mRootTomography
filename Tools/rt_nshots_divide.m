@@ -1,5 +1,5 @@
-function nshots = rt_nshots_devide(n, m, method)
-%RT_NSHOTS_DEVIDE TODO
+function nshots = rt_nshots_divide(n, m, method)
+%rt_nshots_divide TODO
 
 if length(n) > 1 || floor(n) ~= n
     error('RT:NshotsDivisionTotal', 'Total shots number should be an integer');

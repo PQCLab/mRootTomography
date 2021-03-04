@@ -4,8 +4,8 @@ classdef rt_experiment < handle
     
     properties
         dim
-        stat_type
         obj_type
+        stat_type
         proto = {}
         nshots = []
         clicks = {}
@@ -64,9 +64,9 @@ classdef rt_experiment < handle
                         imat = eye(obj.dim);
                         if all(cellfun(@(pr) size(pr, 3) == 1, obj.proto)) % is poiss
                             obj.stat_type = 'poiss';
-                        elseif strcmp(obj.obj_type, 'state') && all(cellfun(@(pr) norm(sum(pr, 3) - imat) < 1e-8, obj.proto)) % is state povm
+                        elseif strcmp(obj.obj_type, 'state') && all(cellfun(@(pr) norm(sum(pr, 3) - imat) < 1e-5, obj.proto)) % is state povm
                             obj.stat_type = 'poly';
-                        elseif strcmp(obj.obj_type, 'process') && all(cellfun(@(pr) norm(rt_prttrace(sum(pr, 3), [obj.dim, obj.dim], 1) - imat) < 1e-8, obj.proto)) % is process povm
+                        elseif strcmp(obj.obj_type, 'process') && all(cellfun(@(pr) norm(rt_prttrace(sum(pr, 3), [obj.dim, obj.dim], 1) - imat) < 1e-5, obj.proto)) % is process povm
                             obj.stat_type = 'poly';
                         else
                             error('RT:StatsTypeAuto', 'Failed to determine statistics type. Please, specify stat_type manually.');
@@ -76,7 +76,7 @@ classdef rt_experiment < handle
                 end
                 if strcmp(field, 'clicks')
                     if ~iscell(obj.clicks)
-                        obj.clicks = num2cell(obj.clicks);
+                        obj.clicks = reshape(num2cell(obj.clicks), 1, []);
                     end
                     continue;
                 end
@@ -88,7 +88,7 @@ classdef rt_experiment < handle
                 end
                 if ~isempty(obj.proto)
                     if length(obj.nshots) == 1
-                        obj.nshots = rt_nshots_devide(obj.nshots, size(obj.proto, 2));
+                        obj.nshots = rt_nshots_divide(obj.nshots, size(obj.proto, 2));
                     elseif length(obj.nshots) ~= size(obj.proto, 2)
                         error('RT:ExpNumberMismatch', 'Length of nshots array does not match length of proto array');
                     end

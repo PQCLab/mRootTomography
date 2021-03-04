@@ -1,6 +1,6 @@
-function B = rt_meas_matrix(M)
+function B = rt_meas_matrix(P)
 
-B = reshape(permute(M,[3,2,1]), size(M,3), []);
+B = reshape(permute(P,[3,2,1]), size(P,3), []);
 
 end
 

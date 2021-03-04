@@ -48,7 +48,7 @@ for j = 1:size(operators, 3)
     a = [real(a); imag(a)]; 
     h = h + nshots(j) * (a * a') / prob(j);
 end
-h = 2*h;
+h = 4 * h;
 
 end
 

@@ -2,7 +2,7 @@ function d = rt_bound(dm, proto, nshots, objType, varargin)
 %rt_CHI_THEORY TODO
 p = inputParser;
 p.KeepUnmatched = true;
-addRequired(p, 'chi');
+addRequired(p, 'dm');
 addRequired(p, 'proto');
 addRequired(p, 'nshots');
 addRequired(p, 'objType');
@@ -64,7 +64,7 @@ ind0 = ind0(1:opt.rank^2);
 Constraints = horzcat(Constraints, Uh(:,ind0));
 
 % Finding d
-L = null(Constraints')'*Uh*diag(1./sqrt(2*h));
+L = null(Constraints')'*Uh*diag(1./sqrt(h));
 d = svd(L).^2;
 
 if strcmpi(opt.objType, 'process')

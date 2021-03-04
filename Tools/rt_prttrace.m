@@ -1,4 +1,4 @@
-function dms = rt_prttrace(dm,dims,sind)
+function dms = rt_prttrace(dm, dims, sind)
 
 dms = 0;
 Base1 = eye(dims(1));

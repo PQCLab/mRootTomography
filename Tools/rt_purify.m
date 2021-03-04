@@ -6,7 +6,6 @@ end
 
 [u, v] = eigs(dm, r);
 v = abs(diag(v));
-v = v / sum(v);
 v = rt_to_simplex(v);
 c = u * diag(sqrt(v));
 

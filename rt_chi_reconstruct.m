@@ -10,13 +10,13 @@ addRequired(p, 'dim');
 addRequired(p, 'clicks');
 addRequired(p, 'proto');
 addOptional(p, 'nshots', 'sum');
-addParameter(p, 'rank', 'auto');
-addParameter(p, 'statType', 'auto');
-addParameter(p, 'init', 'pinv');
-addParameter(p, 'pinvOnly', false);
-addParameter(p, 'getStats', false);
 addParameter(p, 'tracePreserving', true);
+addParameter(p, 'statType', 'auto');
+addParameter(p, 'rank', 'auto');
 addParameter(p, 'significanceLevel', 0.05);
+addParameter(p, 'getStats', false);
+addParameter(p, 'init', 'pinv');
+addParameter(p, 'LipsConst', 'ntot');
 addParameter(p, 'tol', 1e-8, @(x)x>0);
 addParameter(p, 'maxIter', 1e6, @(x)x>0);
 addParameter(p, 'display', false);
@@ -24,7 +24,9 @@ parse(p, dim, clicks, proto, varargin{:});
 op = p.Results;
 
 if ischar(op.rank) && strcmpi(op.rank, 'auto')
-    [data, ~, data_r] = rt_optimize_rank(dim^2, op.significanceLevel, op.display, @(r) rank_fun(dim, clicks, proto, varargin, r));
+    optim = rt_optimizer('auto_rank');
+    optim.set_options('display', op.display, 'sl', op.significanceLevel);
+    [data, data_r] = optim.run(dim^2, @(r) rank_fun(dim, clicks, proto, varargin, r));
     chi = data.chi;
     rinfo = rmfield(data, 'chi');
     rinfo.data_r = data_r;
@@ -39,33 +41,33 @@ end
 
 ex = rt_experiment(dim, 'process', op.statType);
 ex.set_data('proto', op.proto, 'clicks', op.clicks);
-if ischar(op.nshots) && strcmpi(op.nshots, 'sum')
+if strcmpi(op.nshots, 'sum')
     op.nshots = cellfun(@(kj) sum(kj), ex.clicks);
 end
 ex.set_data('nshots', op.nshots);
 
 if op.tracePreserving
-    if strcmpi(op.init, 'pinv') || op.pinvOnly
+    if strcmpi(op.init, 'pinv')
         p_est = ex.get_field('vec_clicks') ./ ex.get_field('vec_nshots');
         [~, e] = rt_pinv(cat(3, ex.proto{:}), p_est, op.rank);
-    end
-    if ~strcmpi(op.init, 'pinv')
+    else
         e = rt_purify(op.init, op.rank);
     end
+    e = e / sqrt(trace(e'*e) / dim);
     e = project_tp(e);
-    rinfo.iter = 0;
-    if ~op.pinvOnly
-        optim = rt_optimizer('proximal_descend');
-        optim.set_options('display', op.display, 'tol', op.tol, 'max_iter', op.maxIter);
-        [e, info] = optim.run(e, ...
-            @(e) ex.get_logL_sq(e), ...                         %% log-likelihood
-            @(e) ex.get_dlogL_sq(e), ...                        %% log-likelihood gradient
-            @(e) project_tp(e / sqrt(trace(e'*e) / dim)), ...   %% proximal operation
-            10 * sum(op.nshots) ...                             %% Lipschitz constant
-            );
-        rinfo.optimizer = optim;
-        rinfo.iter = info.iter;
+    if strcmpi(op.LipsConst, 'ntot')
+        op.LipsConst = sum(op.nshots);
     end
+    optim = rt_optimizer('proximal_ascend');
+    optim.set_options('display', op.display, 'tol', op.tol, 'max_iter', op.maxIter);
+    [e, info] = optim.run(e, ...
+        @(e) ex.get_logL_sq(e), ...                         %% log-likelihood
+        @(e) ex.get_dlogL_sq(e), ...                        %% log-likelihood gradient
+        @(e) project_tp(e / sqrt(trace(e'*e) / dim)), ...   %% proximal operation
+        op.LipsConst ...                                    %% Lipschitz constant
+        );
+    rinfo.optimizer = optim;
+    rinfo.iter = info.iter;
     chi = e*e';
     chi = chi / trace(chi) * dim;
 else

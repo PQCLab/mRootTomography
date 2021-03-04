@@ -15,13 +15,17 @@ clicks = rt_experiment(dim, 'process')...
     .simulate(chi_true);
 
 % Reconstruct process and compare to expected one (the true one in our case)
-chi_expected = chi_true;
 chi_rec = rt_chi_reconstruct(dim, clicks, proto, nshots, 'Rank', r_rec, 'Display', 10);
-Fidelity = rt_fidelity(chi_rec, chi_expected);
+Fidelity = rt_fidelity(chi_rec, chi_true);
 fprintf('Fidelity: %.6f\n', Fidelity);
 
+% Calculate fiducial fidelity bound
+d = rt_bound(chi_rec, proto, nshots, 'process');
+Fidelity5 = 1 - rt_gchi2inv(0.05, d);
+fprintf('Fiducial 5%% fidelity bound: %.6f\n', Fidelity5);
+
 % Plot infidelity distribution
-d = rt_bound(chi_expected, proto, nshots, 'process');
+d = rt_bound(chi_true, proto, nshots, 'process');
 [p, df] = rt_gchi2pdf([], d);
 figure; hold on; grid on;
 plot(df, p, 'LineWidth', 1.5, 'DisplayName', 'Theory');
