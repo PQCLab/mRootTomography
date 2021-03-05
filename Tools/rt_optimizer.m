@@ -1,7 +1,8 @@
 classdef rt_optimizer < handle
-    %RT_OPTIMIZER Summary of this class goes here
-    %   Detailed explanation goes here
-    
+% RT_OPTIMIZER The class for solving optimization tasks
+% Documentation: https://github.com/PQCLab/mRootTomography/blob/master/Documentation.md
+% The code is licensed under GPL v3
+% Author: Boris Bantysh, 2021
     properties
         type
         fixed_point_opts = struct(...
@@ -20,7 +21,6 @@ classdef rt_optimizer < handle
             'sl', 0.05 ...
         )
     end
-    
     methods
         function obj = rt_optimizer(type)
             switch type
@@ -30,14 +30,12 @@ classdef rt_optimizer < handle
                     error('RT:OptType', 'Unknown optimizer type: `%s`\n Only `fixed_point`, `proximal_ascend`, and `auto_rank` are available', type);
             end
         end
-        
         function obj = set_options(obj, varargin)
             opts_field = [obj.type, '_opts'];
             for j = 1:2:length(varargin)
                 obj.(opts_field).(varargin{j}) = varargin{j+1};
             end
         end
-        
         function [x, info] = run(obj, varargin)
             switch obj.type
                 case 'fixed_point'
@@ -48,7 +46,6 @@ classdef rt_optimizer < handle
                     [x, info] = obj.auto_rank(varargin{:});
             end
         end
-        
         % ========= Fixed point iteration ============
         function [x, info] = fixed_point(obj, x0, fVal)
             op = obj.fixed_point_opts;
@@ -74,7 +71,6 @@ classdef rt_optimizer < handle
             end
             info.iter = j;
         end
-        
         % ========= Proximal ascend ============
         function [x, info] = proximal_ascend(obj, x0, fFun, fdFun, fProx, LipsConst)
             op = obj.proximal_ascend_opts;
@@ -111,7 +107,6 @@ classdef rt_optimizer < handle
             x = x1;
             info.iter = j;
         end
-        
         % ========= Automatic rank ============
         function [x, info] = auto_rank(obj, rmax, fData)
             op = obj.auto_rank_opts;

@@ -1,16 +1,8 @@
 function proto = rt_proto_preparation(ptype, varargin)
-%RT_PROTO_PREPARATION Generates preparation protocol
-%   INPUT:
-%   ptype - protocol type
-%       'mub' - Mutually-unbiased bases (MUB) vectors
-%       'tetra' - Tetrahedron qubit vectors
-%       'octa' - Octahedron qubit vectors
-%   varargin - protocol params
-%
-%   OUTPUT:
-%   proto - preparation density matrices
-%       proto(:,:,j) - j-th preparation density matrix
-
+% RT_PROTO_PREPARATION Generates a set of density matrices according to a specific protocol
+% Documentation: https://github.com/PQCLab/mRootTomography/blob/master/Documentation.md
+% The code is licensed under GPL v3
+% Author: Boris Bantysh, 2021
 op.dim = nan;
 op.nsub = 1;
 for ja = 1:2:length(varargin)

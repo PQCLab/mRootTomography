@@ -42,7 +42,7 @@ Consider a quantum state in the Hilbert space of dimension <img alt="d" src="htt
 A quantum process is described by a Choi-Jamiolkowski **process matrix** <img alt="chi" src="https://render.githubusercontent.com/render/math?math=\chi" /> that is the <img alt="d^2-by-d^2" src="https://render.githubusercontent.com/render/math?math=d^2\times d^2" /> density matrix normalized by <img alt="d" src="https://render.githubusercontent.com/render/math?math=d" />. Its square root <img alt="e" src="https://render.githubusercontent.com/render/math?math=e" /> is used for the quantum process reconstruction. We also impose the **trace preserving** condition:
 <p align="center"><img alt="TP condition" src="https://render.githubusercontent.com/render/math?math=\displaystyle \sum_{k=1}^{r}{E_k^\dagger E_k} = I," /></p>
 
-where <img alt="E_k" src="https://render.githubusercontent.com/render/math?math=E_k" /> are the process **Kraus operators**.
+where <img alt="E_k" src="https://render.githubusercontent.com/render/math?math=E_k" /> are the process **Kraus operators** and <img alt="I" src="https://render.githubusercontent.com/render/math?math=I" /> is the identity matrix.
 
 We measure the reconstruction accuracy by Uhlmann's **fidelity** between the true state <img alt="rho" src="https://render.githubusercontent.com/render/math?math=\rho" /> and the reconstructed state <img alt="sigma" src="https://render.githubusercontent.com/render/math?math=\sigma" />:
 <p align="center"><img alt="fidelity" src="https://render.githubusercontent.com/render/math?math=\displaystyle F(\rho,\sigma)=\left[\textrm{Tr}\sqrt{\sqrt\rho\sigma\sqrt\rho}\right]^2." /></p>
@@ -55,27 +55,29 @@ According to the quantum state estimation theory the **infidelity distribution**
 where <img alt="d_j" src="https://render.githubusercontent.com/render/math?math=d_j" /> are positive parameters and <img alt="xi_j" src="https://render.githubusercontent.com/render/math?math=\xi_j" /> are independent random variables with standard normal distribution. The expected value and variance of infidelity are thus
 <p align="center"><img alt="infidelity mean and variance" src="https://render.githubusercontent.com/render/math?math=\displaystyle \langle1-F\rangle=\sum_{j=1}^{\nu}{d_j}, \qquad \sigma_{1-F}^2=2\sum_{j=1}^{\nu}{d_j^2}." /></p>
 
-As the infidelity lower bound is inverse proportional to the total sample size ![N](https://latex.codecogs.com/svg.latex?N) over all measurements, we also use the so-called **loss function** <img alt="L=N<1-F>" src="https://render.githubusercontent.com/render/math?math=L=N\langle1-F\rangle" /> independent of the sample size.
+As the infidelity lower bound is inverse proportional to the total sample size <img alt="N" src="https://render.githubusercontent.com/render/math?math=N" /> over all measurements, we also use the so-called **loss function** <img alt="L=N*mean(1-F)" src="https://render.githubusercontent.com/render/math?math=L=N\langle1-F\rangle" /> independent of the sample size.
 
 ## <a name="algorithms">Algorithms</a>
 We use the _maximum likelihood_ parameters estimation (MLE). In the case of quantum process tomography MLE results in the _likelihood equation_ [[1]](#ref1):
-<p align="center"><img src="https://latex.codecogs.com/svg.latex?I%5Cpsi%3DJ%28%5Cpsi%29%5Cpsi"/></p>
+<p align="center"><img alt="likelihood equation" src="https://render.githubusercontent.com/render/math?math=\displaystyle I\psi=J(\psi)\psi," /></p>
+
 where
-<p align="center"><img src="https://latex.codecogs.com/svg.latex?I%3D%5Csum_%7Bj%7D%7Bn_j%20P_j%7D%2C%5C%3B%5C%3B%5C%3B%5C%3BJ%28%5Cpsi%29%3D%5Csum_%7Bj%7D%7B%5Cfrac%7Bk_j%7D%7B%5Ctext%7BTr%7D%28%5Cpsi%5Cpsi%5E%5Cdagger%20P_j%29%7D%20P_j%7D"/></p>
+<p align="center"><img alt="I and J definitions" src="https://render.githubusercontent.com/render/math?math=\displaystyle I=\sum_j{n_jP_j},\qquad J(\psi)=\sum_j{\frac{k_j}{\textrm{Tr}(\psi\psi^\dagger P_j)}P_j}." /></p>
+
 The sums are taken over all measurements operators in all measurements schemes. A solution is obtained by the fixed-point iteration method:
-<p align="center"><img src="https://latex.codecogs.com/svg.latex?%5Cpsi_%7Bi&plus;1%7D%3D%281-%5Cmu%29I%5E%7B-1%7DJ%28%5Cpsi_i%29%5Cpsi_i%20&plus;%20%5Cmu%20%5Cpsi_i"/></p>
+<p align="center"><img alt="fixed-point iterations" src="https://render.githubusercontent.com/render/math?math=\displaystyle \psi_{i%2B1}=(1-\mu)I^{-1}J(\psi_i)\psi_i %2B \mu\psi_i." /></p>
 
-Here ![mu](https://latex.codecogs.com/svg.latex?%5Cmu) is the regularization parameter. We use Moore-Penrose pseudo-inversion to get ![psi_0](https://latex.codecogs.com/svg.latex?%5Cpsi_0).
+Here <img alt="mu" src="https://render.githubusercontent.com/render/math?math=\mu" /> is the regularization parameter. We use Moore-Penrose pseudo-inversion to get <img alt="psi_0" src="https://render.githubusercontent.com/render/math?math=\psi_0" />.
 
-For the quantum process tomography we use the _non-convex proximal gradient ascend_ method to ensure the trace preserving constraint (for a non trace preserving processes we use the fixed-point iteration method). In particular, we consider the **Algorithm 1** from Ref. [[2]](#ref2) with Lipschitz constant equal to ![N](https://latex.codecogs.com/svg.latex?N) by default. To implement the proximal operator we make use of the fact that for a trace preserving process the block matrix of Kraus operators
-<p align="center"><img src="https://latex.codecogs.com/svg.latex?Q%3D%5Cbegin%7Bpmatrix%7DE_1%5C%5CE_2%5C%5C%5Cvdots%5Cend%7Bpmatrix%7D"/></p>
+For the quantum process tomography we use the _non-convex proximal gradient ascend_ method to ensure the trace preserving constraint (for a non trace preserving processes we use the fixed-point iteration method). In particular, we consider the **Algorithm 1** from Ref. [[2]](#ref2) with Lipschitz constant equal to <img alt="N" src="https://render.githubusercontent.com/render/math?math=N" /> by default. To implement the proximal operator we make use of the fact that for a trace preserving process the block matrix of Kraus operators
+<p align="center"><img alt="fixed-point iterations" src="https://render.githubusercontent.com/render/math?math=\displaystyle Q=\begin{pmatrix}E_1\\E_2\\\vdots\end{pmatrix}." /></p>
 
-should be orthogonal. Note that this matrix is just the re-ordered version of the process matrix square root ![e](https://latex.codecogs.com/svg.latex?e). Thus, the projection of ![e](https://latex.codecogs.com/svg.latex?e) is done by the Frobenius norm projection of the corresponding non orthogonal ![Q](https://latex.codecogs.com/svg.latex?Q) onto the set of orthogonal matrices. To do this we equate all its singular values to 1.
+should be orthogonal. Note that this matrix is just the re-ordered version of the process matrix square root <img alt="e" src="https://render.githubusercontent.com/render/math?math=e" />. Thus, the projection of <img alt="e" src="https://render.githubusercontent.com/render/math?math=e" /> is done by the Frobenius norm projection of the corresponding non orthogonal <img alt="Q" src="https://render.githubusercontent.com/render/math?math=Q" /> onto the set of orthogonal matrices. To do this we equate all its singular values to 1.
 
-The root approach quantum tomography implies setting the model rank ![r](https://latex.codecogs.com/svg.latex?r). If the rank is unknown we estimate it using the _adequacy criterion_ [[1]](#ref1). To do this we vary ![r](https://latex.codecogs.com/svg.latex?r) from 1 to its maximal value until the reconstruction result becomes statistically significant at some pre-chosen significance level. The procedure is also terminated if the p-value of the rank-![(r+1)](https://latex.codecogs.com/svg.latex?%28r+1%29) model is lower than p-value of the rank-![r](https://latex.codecogs.com/svg.latex?r) model.
+The root approach quantum tomography implies setting the model rank <img alt="r" src="https://render.githubusercontent.com/render/math?math=r" />. If the rank is unknown we estimate it using the _adequacy criterion_ [[1]](#ref1). To do this we vary <img alt="r" src="https://render.githubusercontent.com/render/math?math=r" /> from 1 to its maximal value until the reconstruction result becomes statistically significant at some pre-chosen significance level. The procedure is also terminated if the p-value of the rank-<img alt="(r+1)" src="https://render.githubusercontent.com/render/math?math=(r%2B1)" /> model is lower than p-value of the rank-<img alt="r" src="https://render.githubusercontent.com/render/math?math=r" /> model.
 
 ## <a name="format">Data format</a>
-For the **quantum state tomography** one must specify a set of complementary measurement experiments over a quantum state density matrix ![rho](https://latex.codecogs.com/svg.latex?%5Crho). Every experiment may be repeated many times with some sets of possible measurement outcomes. The probability to get ![k](https://latex.codecogs.com/svg.latex?k)-th outcome is determined by the measurement operator ![P_k](https://latex.codecogs.com/svg.latex?P_k) as ![p_k=trace(rho*P_k)](https://latex.codecogs.com/svg.latex?p_k%3D%5Ctext%7BTr%7D%28%5Crho%20P_k%29). The set of measurement operators and the number of experiments repetitions define the **_measurements protocol_**. The number of observations for each outcome define the **_measurements results_**. The following code describe the required data format.
+For the **quantum state tomography** one must specify a set of complementary measurement experiments over a quantum state density matrix <img alt="rho" src="https://render.githubusercontent.com/render/math?math=\rho" />. Every experiment may be repeated many times with some sets of possible measurement outcomes. The probability to get _k_-th outcome is determined by the measurement operator <img alt="P_k" src="https://render.githubusercontent.com/render/math?math=P_k" /> as <img alt="p_k=trace(rho*P_k)" src="https://render.githubusercontent.com/render/math?math=p_k=\textrm{Tr}(\rho P_k)" />. The set of measurement operators and the number of experiments repetitions define the **_measurements protocol_**. The number of observations for each outcome define the **_measurements results_**. The following code describe the required data format.
 ```
 proto{j}(:,:,k) % Measurement operator matrix for k-th outcome in j-th measurement scheme
 nshots(j) % Number of j-th scheme repetitions
@@ -98,7 +100,7 @@ nshots(j) % Number of j-th scheme repetitions
 clicks{j}(k) % Number of k-th outcome observations in j-th scheme
 ```
 
-Other option is to define measurement operators for the process matrix ![chi](https://latex.codecogs.com/svg.latex?%5Cchi) and use the same data format as for quantum state tomography.
+Other option is to define measurement operators for the process matrix <img alt="chi" src="https://render.githubusercontent.com/render/math?math=\chi" /> and use the same data format as for quantum state tomography.
 
 ## <a name="rt_startup">rt_startup</a>
 Includes the library directories in the search paths. Run before using the library.
@@ -118,9 +120,9 @@ The class for working with the quantum tomography data.
 - `proto` &ndash; measurements operators
 - `nshots` &ndash; measurements repetitions
 - `clicks` &ndash; number of observed measurements outcomes
-- `vec_proto` &ndash; a matrix form of the whole measurements protocol
-- `vec_nshots` &ndash; a matrix form of the measurements repetitions
-- `vec_clicks` &ndash; a matrix form of the number of observed measurements outcomes
+- `vec_proto` &ndash; matrix form of the whole measurements protocol
+- `vec_nshots` &ndash; matrix form of the measurements repetitions
+- `vec_clicks` &ndash; matrix form of the number of observed measurements outcomes
 
 ### Methods
 #### set_data
@@ -257,9 +259,9 @@ Calculates the Uhlmann's fidelity between quantum states (see [Definitions](#def
 - `f` &ndash; fidelity
 
 ## <a name="rt_infomatrix">rt_infomatrix</a>
-Calculates the complete Fisher information matrix by the density matrix and the measurements protocol. The parameters space is the Euclidean space of real parameters of the purified quantum state. Thus, the information matrix dimension is ![2dr-by-2dr](https://latex.codecogs.com/svg.latex?2dr%5Ctimes2dr). It has at least ![r^2](https://latex.codecogs.com/svg.latex?%5Cinline%20r%5E2) zero eigenvalues corresponded to the phase uncertainty that cannot be detected by the state measurements.
+Calculates the complete Fisher information matrix by the density matrix and the measurements protocol. The parameters space is the Euclidean space of real parameters of the purified quantum state. Thus, the information matrix dimension is <img alt="2dr-by-2dr" src="https://render.githubusercontent.com/render/math?math=2dr\times2dr" />. It has at least <img alt="r^2" src="https://render.githubusercontent.com/render/math?math=r^2" /> zero eigenvalues corresponded to the phase uncertainty that cannot be detected by the state measurements.
 
-In the case of a quantum process the information matrix has dimension ![2dr-by-2dr](https://latex.codecogs.com/svg.latex?%5Cinline%202d%5E2r%5Ctimes2d%5E2r) and contains at least ![r^2](https://latex.codecogs.com/svg.latex?%5Cinline%20r%5E2) zero eigenvalues.
+In the case of a quantum process the information matrix has dimension <img alt="2d^2r-by-2d^2r" src="https://render.githubusercontent.com/render/math?math=2d^2r\times2d^2r" /> and contains at least <img alt="r^2" src="https://render.githubusercontent.com/render/math?math=r^2" /> zero eigenvalues.
 
 #### Usage
 - `H = rt_infomatrix(dm, proto, nshots, 'state')` returns the complete Fisher information matrix `H` for the quantum state density matrix `dm` and measurements protocol described by `proto` and `nshots` (see [Data format](#format) section); the purification rank is `rank(dm)`
@@ -270,7 +272,7 @@ In the case of a quantum process the information matrix has dimension ![2dr-by-2
 - `H` &ndash; complete Fisher information matrix
 
 ### <a name="rt_bound">rt_bound</a>
-Calculates the lower bound for the variances ![d_j](https://latex.codecogs.com/svg.latex?d_j) of quantum state or quantum process parameters estimator. The parameters space is the subspace of the Euclidean space of real parameters of the purified quantum state. The subspace is orthogonal to the vectors imposed by the phase insensitivity and normalization conditions, as well as by the trace preserving condition for a quantum process.
+Calculates the lower bound for the variances <img alt="d_j" src="https://render.githubusercontent.com/render/math?math=d_j" /> of quantum state or quantum process parameters estimator. The parameters space is the subspace of the Euclidean space of real parameters of the purified quantum state. The subspace is orthogonal to the vectors imposed by the phase insensitivity and normalization conditions, as well as by the trace preserving condition for a quantum process.
 
 The calculated lower bound sets the vector of infidelity distribution parameters (see [Definitions](#definitions) section).
 
@@ -327,7 +329,7 @@ Calculates the generalized chi-squared distribution (see [Definitions](#definiti
 - `x` &ndash; inverse cumulative distribution function values
 
 ### <a name="rt_randstate">rt_randstate</a>
-Generates a fixed rank quantum state using the partial tracing. A Haar random pure state in the ![rd](https://latex.codecogs.com/svg.latex?rd)-dimensional Hilbert space is generated and then the partial trace over ![r](https://latex.codecogs.com/svg.latex?r)-dimensional subsystem is taken.
+Generates a fixed rank quantum state using the partial tracing. A Haar random pure state in the <img alt="rd" src="https://render.githubusercontent.com/render/math?math=rd" />-dimensional Hilbert space is generated and then the partial trace over <img alt="r" src="https://render.githubusercontent.com/render/math?math=r" />-dimensional subsystem is taken.
 
 #### Usage
 - `dm = rt_randstate(dim)` returns a random full-rank density matrix `dm` for the system of dimension `dim`
@@ -346,7 +348,7 @@ Generates a Haar random unitary matrix.
 - `u` &ndash; unitary matrix
 
 ### <a name="rt_randprocess">rt_randprocess</a>
-Generates a fixed rank quantum process using the extended dynamics representation. A Haar random unitary matrix in the ![rd](https://latex.codecogs.com/svg.latex?rd)-dimensional Hilbert space is generated and then the partial trace over ![r](https://latex.codecogs.com/svg.latex?r)-dimensional subsystem dynamics is taken. The process representations are described in the [Definitions](#definitions) section.
+Generates a fixed rank quantum process using the extended dynamics representation. A Haar random unitary matrix in the <img alt="rd" src="https://render.githubusercontent.com/render/math?math=rd" />-dimensional Hilbert space is generated and then the partial trace over <img alt="r" src="https://render.githubusercontent.com/render/math?math=r" />-dimensional subsystem dynamics is taken. The process representations are described in the [Definitions](#definitions) section.
 
 #### Usage
 - `chi = rt_randprocess(dim)` returns a random rank-1 process matrix `chi` for the system of dimension `dim`
@@ -420,7 +422,7 @@ Divides a total integer sample size equally over a set of measurements.
 - `nshots` &ndash; a column-vector of measurements repetitions
 
 ### <a name="rt_meas_matrix">rt_meas_matrix</a>
-Generates a measurement matrix ![B](https://latex.codecogs.com/svg.latex?B) from the measurements operators ![P_j](https://latex.codecogs.com/svg.latex?P_j) such that the ![j](https://latex.codecogs.com/svg.latex?j)-th element of the column vector ![B*\vec\rho](https://latex.codecogs.com/svg.latex?B%5Ccdot%5Cvec%5Crho) (![\vec\rho](https://latex.codecogs.com/svg.latex?%5Cvec%5Crho) is the reshaped into column density matrix ![rho](https://latex.codecogs.com/svg.latex?%5Crho)) is equal to ![trace(rho*P_k)](https://latex.codecogs.com/svg.latex?%5Ctext%7BTr%7D%28%5Crho%20P_k%29).
+Generates the measurement matrix <img alt="B" src="https://render.githubusercontent.com/render/math?math=B" /> from the measurements operators <img alt="P_j" src="https://render.githubusercontent.com/render/math?math=P_j" /> such that the _j_-th element of the column vector <img alt="B*\vec\rho" src="https://render.githubusercontent.com/render/math?math=B\cdot\vec\rho" /> (<img alt="\vec\rho" src="https://render.githubusercontent.com/render/math?math=\vec\rho" /> is the reshaped into column density matrix <img alt="rho" src="https://render.githubusercontent.com/render/math?math=\rho" />) is equal to <img alt="trace(rho*P_k)" src="https://render.githubusercontent.com/render/math?math=\textrm{Tr}(\rho P_k)" />.
 
 #### Usage
 - `B = rt_meas_matrix(P)` returns the measurement matrix `B` by the 3D array with measurements operators along the third dimension

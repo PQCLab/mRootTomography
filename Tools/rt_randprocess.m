@@ -1,5 +1,8 @@
 function proc = rt_randprocess(dim, varargin)
-
+% RT_RANDPROCESS Generates a fixed rank quantum process using the extended dynamics representation
+% Documentation: https://github.com/PQCLab/mRootTomography/blob/master/Documentation.md
+% The code is licensed under GPL v3
+% Author: Boris Bantysh, 2021
 op.rank = 1;
 op.form = 'chi';
 op.tracepreserving = true;

@@ -1,9 +1,9 @@
 function [chi, rinfo] = rt_chi_reconstruct(dim, clicks, proto, varargin)
-%rt_CHI_RECONSTRUCT Performs the reconstruction of chi-matrix, normalized
-%to unity. The reconstruction is by monotone proximal gradient descend based on the paper
-%https://papers.nips.cc/paper/5728-accelerated-proximal-gradient-methods-for-nonconvex-programming.pdf
-% TODO
-
+% RT_CHI_RECONSTRUCT Reconstruct the quantum process matrix by the results
+% of a set of complementary measurements
+% Documentation: https://github.com/PQCLab/mRootTomography/blob/master/Documentation.md
+% The code is licensed under GPL v3
+% Author: Boris Bantysh, 2021
 p = inputParser;
 p.KeepUnmatched = true;
 addRequired(p, 'dim');

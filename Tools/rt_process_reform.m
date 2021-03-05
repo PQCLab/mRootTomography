@@ -1,5 +1,8 @@
 function proc = rt_process_reform(proc, desc, varargin)
-
+% RT_PROCESS_REFORM Changes the quantum process representation
+% Documentation: https://github.com/PQCLab/mRootTomography/blob/master/Documentation.md
+% The code is licensed under GPL v3
+% Author: Boris Bantysh, 2021
 switch desc
     case 'chi2kraus'
         e = rt_process_reform(proc, 'chi2root', varargin{:});

@@ -9,7 +9,7 @@ proto_meas = rt_proto_measurement('mub', 'dim', dim);
 proto = rt_proto_process(proto_prep, proto_meas);
 
 % Generate state
-chi_true = rt_randprocess(dim, 'Rank', r_true, 'tracePreserving', false);
+chi_true = rt_randprocess(dim, 'Rank', r_true, 'TracePreserving', false);
 
 % Conduct experiments
 chi_expected = chi_true;
@@ -21,7 +21,7 @@ for je = 1:n_exp
         .set_data('proto', proto, 'nshots', nshots)...
         .simulate(chi_true);
     
-    [chi_rec, rinfo] = rt_chi_reconstruct(dim, clicks, proto, nshots, 'Rank', r_rec, 'getStats', true, 'tracePreserving', false, 'StatType', 'poiss');
+    [chi_rec, rinfo] = rt_chi_reconstruct(dim, clicks, proto, nshots, 'Rank', r_rec, 'getStats', true, 'TracePreserving', false, 'StatType', 'poiss');
     Fidelity(je) = rt_fidelity(chi_rec, chi_expected);
     Pval(je) = double(rinfo.pval);
 end
@@ -38,7 +38,7 @@ legend('show');
 figure;
 hold on; grid on;
 histogram(1 - Fidelity, 'Normalization', 'pdf', 'DisplayName', 'Numerical Experiments');
-d = rt_bound(chi_expected, proto, nshots, 'process', 'tracePreserving', false);
+d = rt_bound(chi_expected, proto, nshots, 'process', 'TracePreserving', false);
 [p, df] = rt_gchi2pdf([], d);
 plot(df, p, 'LineWidth', 1.5, 'DisplayName', 'Theory');
 xlabel('$$1-F$$', 'Interpreter', 'latex');

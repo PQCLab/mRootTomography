@@ -19,8 +19,8 @@ fprintf('Fidelity: %.6f\n', Fidelity);
 
 % Calculate fiducial fidelity bound
 d = rt_bound(dm_rec, proto, nshots, 'state');
-Fidelity5 = 1 - rt_gchi2inv(0.05, d);
-fprintf('Fiducial 5%% fidelity bound: %.6f\n', Fidelity5);
+Fidelity95 = 1 - rt_gchi2inv(0.95, d);
+fprintf('Fiducial 95%% fidelity bound: %.6f\n', Fidelity95);
 
 % Plot infidelity distribution
 d = rt_bound(dm_true, proto, nshots, 'state');

@@ -1,7 +1,8 @@
 function f = rt_fidelity(dm1, dm2)
-%RT_FIDELITY Calculates the fidelity of quantum states
-%   Calculates the fidelity of quantum states
-
+% RT_FIDELITY Calculates the Uhlmann's fidelity between quantum states
+% Documentation: https://github.com/PQCLab/mRootTomography/blob/master/Documentation.md
+% The code is licensed under GPL v3
+% Author: Boris Bantysh, 2021
 dm1 = dm1 / trace(dm1);
 r1 = rank(dm1);
 
@@ -16,6 +17,5 @@ else
     a = dm1sr * dm2 * dm1sr;
     f = sum(sqrt(svd(a)))^2;
 end
-
 end
 

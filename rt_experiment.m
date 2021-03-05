@@ -1,19 +1,19 @@
 classdef rt_experiment < handle
-    %RT_STATS Summary of this class goes here
-    %   Detailed explanation goes here
-    
+% RT_EXPERIMENT The class for working with the quantum tomography data
+% Documentation: https://github.com/PQCLab/mRootTomography/blob/master/Documentation.md
+% The code is licensed under GPL v3
+% Author: Boris Bantysh, 2021
     properties
-        dim
-        obj_type
-        stat_type
-        proto = {}
-        nshots = []
-        clicks = {}
-        vec_proto = []
-        vec_nshots = []
-        vec_clicks = []
+        dim                 % Hilbert space dimension
+        obj_type            % Object type (`'state'` or `'process'`)
+        stat_type           % Measurements statistics type
+        proto = {}          % Measurements operators
+        nshots = []         % Measurements repetitions
+        clicks = {}         % Number of observed measurements outcomes
+        vec_proto = []      % Matrix form of the whole measurements protocol
+        vec_nshots = []     % Matrix form of the measurements repetitions
+        vec_clicks = []     % Matrix form of the number of observed measurements outcomes
     end
-    
     methods
         function obj = rt_experiment(dim, obj_type, stat_type)
             obj.dim = dim;
@@ -27,7 +27,6 @@ classdef rt_experiment < handle
                 otherwise
                     error('RT:StatsType', 'Unknown statistics type: `%s`\n Only `poly`, `poiss`, `asymp`, `auto` are available', stat_type);
             end
-            
             switch obj_type
                 case {'state', 'process'}
                     obj.obj_type = lower(obj_type);
@@ -35,7 +34,6 @@ classdef rt_experiment < handle
                     error('RT:ObjectType', 'Unknown object type: `%s`\n Only `state`, `process` are available', obj_type);
             end
         end
-        
         function obj = set_data(obj, varargin)
             for j = 1:2:length(varargin)
                 field = lower(varargin{j});
@@ -95,7 +93,6 @@ classdef rt_experiment < handle
                 end
             end
         end
-        
         function data = get_field(obj, field)
             if strcmp(field, 'vec_proto') && isempty(obj.vec_proto)
                 obj.vec_proto = rt_meas_matrix(cat(3, obj.proto{:}));
@@ -108,7 +105,6 @@ classdef rt_experiment < handle
             end
             data = obj.(field);
         end
-        
         function p = get_probs_dm(obj, dm, tol)
             if nargin < 3
                 tol = 0;
@@ -116,14 +112,12 @@ classdef rt_experiment < handle
             p = abs(obj.get_field('vec_proto') * dm(:));
             p(p < tol) = tol;
         end
-        
         function p = get_probs_sq(obj, sq, tol)
             if nargin < 3
                 tol = 0;
             end
             p = obj.get_probs_dm(sq * sq', tol);
         end
-        
         % ========= Sampling ============
         function clicks = simulate(obj, dm)
             clicks = cell(size(obj.proto));
@@ -132,7 +126,6 @@ classdef rt_experiment < handle
                 clicks{j} = obj.sample(probs, obj.nshots(j));
             end
         end
-        
         function k = sample(obj, p, n)
             p = p(:);
             if strcmp(obj.stat_type, 'poly')
@@ -170,7 +163,6 @@ classdef rt_experiment < handle
             end
             k = k(:);
         end
-        
         % ========= Likelihood ============
         function f = get_logL_dm(obj, dm)
             p = obj.get_probs_dm(dm, 1e-15);
@@ -182,11 +174,9 @@ classdef rt_experiment < handle
                 f = sum(k .* log(lam) - lam);
             end
         end
-        
         function f = get_logL_sq(obj, sq)
             f = obj.get_logL_dm(sq * sq');
         end
-        
         function df = get_dlogL_sq(obj, sq)
             p = obj.get_probs_sq(sq, 1e-15);
             k = obj.get_field('vec_clicks');
@@ -201,14 +191,12 @@ classdef rt_experiment < handle
                 df = 2 * J * sq;
             end
         end
-        
         % ========= Chi-squared ============
         function f = get_chi2_dm(obj, dm)
             n_expected = obj.get_probs_dm(dm) .* obj.get_field('vec_nshots');
             n_observed = obj.get_field('vec_clicks');
             f = sum((n_expected-n_observed).^2./n_expected);
         end
-        
         function df = get_df(obj, obj_rank)
             df = length(obj.get_field('vec_clicks'));
             if strcmpi(obj.stat_type, 'poly')

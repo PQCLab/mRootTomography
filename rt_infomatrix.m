@@ -1,5 +1,9 @@
 function h = rt_infomatrix(dm, proto, nshots, objType, varargin)
-% RT_INFOMATRIX TODO
+% RT_INFOMATRIX Calculates the complete Fisher information matrix by the
+% density matrix and the measurements protocol
+% Documentation: https://github.com/PQCLab/mRootTomography/blob/master/Documentation.md
+% The code is licensed under GPL v3
+% Author: Boris Bantysh, 2021
 p = inputParser;
 p.KeepUnmatched = true;
 addRequired(p, 'dm');

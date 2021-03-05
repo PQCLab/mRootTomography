@@ -1,6 +1,8 @@
 function [p, x] = rt_gchi2pdf(x, d)
-%GCHI2PDF TODO
-
+% RT_GCHI2PDF Calculates the generalized chi-squared distribution probability density function
+% Documentation: https://github.com/PQCLab/mRootTomography/blob/master/Documentation.md
+% The code is licensed under GPL v3
+% Author: Boris Bantysh, 2021
 x0 = x;
 tol = 1e-4;
 nbins = 1e4;
@@ -34,6 +36,4 @@ p = p(1:nbins-20) - min(p);
 if ~isempty(x0)
     p = interp1(x, p, x0, 'linear', 'extrap');
 end
-
 end
-

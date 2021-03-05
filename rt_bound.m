@@ -1,5 +1,9 @@
 function d = rt_bound(dm, proto, nshots, objType, varargin)
-%rt_CHI_THEORY TODO
+% RT_BOUND Calculates the lower bound for the variances of quantum state or
+% quantum process parameters estimator
+% Documentation: https://github.com/PQCLab/mRootTomography/blob/master/Documentation.md
+% The code is licensed under GPL v3
+% Author: Boris Bantysh, 2021
 p = inputParser;
 p.KeepUnmatched = true;
 addRequired(p, 'dm');

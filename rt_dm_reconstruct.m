@@ -1,58 +1,9 @@
 function [dm, rinfo] = rt_dm_reconstruct(dim, clicks, proto, varargin)
-%RT_DM_RECONSTRUCT Performs the quantum state reconstruction using root
-%approach and maximum likelihood. Detail explanation of the algorithm could
-%be found in the paper [Borganov Yu. I., JETP 108(6) 2009] 
-%
-%   dm = rt_dm_reconstruct(clicks,proto) reconstructs density matrix by
-%   the set of clicks obtained in each measurement experiment defined by
-%   protocol proto. clicks{j} - column-vector with the numbers of observed
-%   events in j-th experiment. proto{j} - 3D-array of measurement operators.
-%   size(proto{j},3) should be equal to length(click{j}) for every j.
-%
-%   dm = rt_dm_reconstruct(clicks,proto,nshots) specifies the row-vector
-%   nshots - row-vector of the numbers of measurements. nshots(j) - number
-%   of measurements for j-th experiment. length(nshots) should be equal to
-%   length(proto) and length(clicks). If nshots = 'sum' then for j-th
-%   experiment number of measurements is sum(clicks{j}). Default: 'sum'
-%
-%   dm = rt_dm_reconstruct( ___ ,Name,Value) specifies additional parameters
-%   for reconstruction. For example, rt_dm_reconstruct(clicks,proto,'Rank',1)
-%   reconstructs a pure (rank-1) quantum state. Available parameters:
-%       • Rank (integer or sting) - rank of the quantum state model. 'auto'
-%       indicates that rank should be calculated automatically using
-%       chi-squared test, 'full' indicates full-rank reonstruction. Default: 'auto'
-%       • Normalize (boolean) - normalize output density matrix. Default: true
-%       • Init (string or dm) - initial guess of the density matrix. Value
-%       'pinv' stands for the initial guess by pseudo-inversion.
-%       Default: 'pinv'
-%       • PinvOnly (boolean) - reconstruct density matrix by the
-%       pseudo-inversion only. Default: false
-%       • SignificanceLevel (float) - significance level for the
-%       automatic rank definition (used when Rank equal to 'auto').
-%       Default: 0.005
-%       • Alpha (float) - convergence speed parameter. At each step old state
-%       matrix C becomes Alpha*CN + (1-Alpha)*C, where CN is a new state matrix.
-%       Default: 0.5
-%       • Tol (float) - termination tolerance on state matrix. Default: 1e-8
-%       • MaxIter (integer) - maximum number of iterations. Default: 1e6
-%       • Display (bool) - display iterations. Default: false
-%
-%   [dm,rinfo] = rt_dm_reconstruct( ___ ) also returns additional
-%   reconstruction informations
-%
-%OUTPUT:
-%   dm - density matrix
-%   rinfo - structure array with the following fields:
-%       • iter - number of iteration taken to find likelihood maximum
-%       • rank - rank of the quantum state model
-%       • pval, chi2, df - p-value, chi-squared value and number of degrees
-%        of freedom of the statistical chi-squared test
-%       • dm_r, info_r - cell arrays of density matrices and reconstruction
-%       information for every value of rank below optimal one (defined if
-%       parameter 'Rank' is set to 'auto')
-%
-%Author: PQCLab
-%Website: https://github.com/PQCLab/RootTomography
+% RT_DM_RECONSTRUCT Reconstruct the quantum state density matrix by the
+% results of a set of complementary measurements
+% Documentation: https://github.com/PQCLab/mRootTomography/blob/master/Documentation.md
+% The code is licensed under GPL v3
+% Author: Boris Bantysh, 2021
 p = inputParser;
 p.KeepUnmatched = true;
 addRequired(p, 'dim');

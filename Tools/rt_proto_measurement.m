@@ -1,16 +1,8 @@
 function proto = rt_proto_measurement(ptype, varargin)
-%RT_PROTO_MEASUREMENT Library of quantum states measurements protocols
-%   INPUT:
-%   ptype - protocol type
-%       'mub' - Mutually-unbiased bases (MUB) protocol
-%       'tetra' - Tetrahedron qubit bases
-%   varargin - protocol name-value params
-%
-%   OUTPUT:
-%   proto - measurement operators
-%       proto{j}(:,:,k) - k-th measurement operator corresponding to the
-%       j-th measurement
-
+% RT_PROTO_MEASUREMENT Generates the measurements operators of a specific type
+% Documentation: https://github.com/PQCLab/mRootTomography/blob/master/Documentation.md
+% The code is licensed under GPL v3
+% Author: Boris Bantysh, 2021
 op.dim = nan;
 op.modifier = 'none';
 op.nsub = 1;

@@ -1,15 +1,15 @@
 function nshots = rt_nshots_divide(n, m, method)
-%rt_nshots_divide TODO
-
+% RT_NSHOTS_DIVIDE Divides a total integer sample size equally over a set of measurements
+% Documentation: https://github.com/PQCLab/mRootTomography/blob/master/Documentation.md
+% The code is licensed under GPL v3
+% Author: Boris Bantysh, 2021
 if length(n) > 1 || floor(n) ~= n
     error('RT:NshotsDivisionTotal', 'Total shots number should be an integer');
 end
-
 if isinf(n)
     nshots = inf(1, m);
     return;
 end
-
 if nargin < 3
     method = 'total_int';
 end
