@@ -33,7 +33,7 @@ dim = 4; % System dimension
 r_true = 1; % True state rank
 dm_true = rt_randstate(dim, 'Rank', r_true); % True state
 nshots = 1e3; % Total sample size
-proto = rt_proto_measurement('mub', 'dim', dim); % Generate measurement operators
+proto = rt_proto_measurement('mub', 'dim', dim); % Generate measurements operators
 ```
 
 The `rt_experiment` class allows one to store and simulate tomography data.

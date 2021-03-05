@@ -37,26 +37,25 @@
 - [References](#references)
 
 ## <a name="definitions">Definitions</a>
-Consider a quantum state in the Hilbert space of dimension ![d](https://latex.codecogs.com/svg.latex?d). The root approach to quantum state tomography implies reconstructing a purified quantum state ![psi](https://latex.codecogs.com/svg.latex?%5Cpsi) of size ![d-by-r](https://latex.codecogs.com/svg.latex?d%5Ctimes%20r) instead of corresponding rank-![r](https://latex.codecogs.com/svg.latex?r) **density matrix** ![rho=psi*psi^\dagger](https://latex.codecogs.com/svg.latex?%5Crho%3D%5Cpsi%5Cpsi%5E%5Cdagger). Thus, matrix ![psi](https://latex.codecogs.com/svg.latex?%5Cpsi) defines a **square root** of the density matrix.
+Consider a quantum state in the Hilbert space of dimension <img alt="d" src="https://render.githubusercontent.com/render/math?math=d" />. The root approach to quantum state tomography implies reconstructing a purified quantum state <img alt="psi" src="https://render.githubusercontent.com/render/math?math=\psi" /> of size <img alt="d-by-r" src="https://render.githubusercontent.com/render/math?math=d\times r" /> instead of corresponding rank-<img alt="r" src="https://render.githubusercontent.com/render/math?math=r" /> **density matrix** <img alt="rho=psi*psi" src="https://render.githubusercontent.com/render/math?math=\rho=\psi\psi^\dagger" />. Thus, matrix <img alt="psi" src="https://render.githubusercontent.com/render/math?math=\psi" /> defines a **square root** of the density matrix.
 
-A quantum process is described by a Choi-Jamiolkowski **process matrix** ![chi](https://latex.codecogs.com/svg.latex?%5Cchi) that is the ![d^2-by-d^2](https://latex.codecogs.com/svg.latex?d%5E2%5Ctimes%20d%5E2) density matrix normalized by ![d](https://latex.codecogs.com/svg.latex?d). Its square root ![e](https://latex.codecogs.com/svg.latex?e) is used for the quantum process reconstruction. We also impose the **trace preserving** condition:
-<p align="center"><img src="https://latex.codecogs.com/svg.latex?%5Csum_%7Bk%3D1%7D%5E%7Br%7D%7BE_k%5E%5Cdagger%20E_k%7D%3DI"/>,</p>
+A quantum process is described by a Choi-Jamiolkowski **process matrix** <img alt="chi" src="https://render.githubusercontent.com/render/math?math=\chi" /> that is the <img alt="d^2-by-d^2" src="https://render.githubusercontent.com/render/math?math=d^2\times d^2" /> density matrix normalized by <img alt="d" src="https://render.githubusercontent.com/render/math?math=d" />. Its square root <img alt="e" src="https://render.githubusercontent.com/render/math?math=e" /> is used for the quantum process reconstruction. We also impose the **trace preserving** condition:
+<p align="center"><img alt="TP condition" src="https://render.githubusercontent.com/render/math?math=\displaystyle \sum_{k=1}^{r}{E_k^\dagger E_k} = I," /></p>
 
-where ![E_k](https://latex.codecogs.com/svg.latex?E_k) are the process **Kraus operators**.
+where <img alt="E_k" src="https://render.githubusercontent.com/render/math?math=E_k" /> are the process **Kraus operators**.
 
-We measure the reconstruction accuracy by Uhlmann's **fidelity** between the true state ![rho](https://latex.codecogs.com/svg.latex?%5Crho) and the reconstructed state ![sigma](https://latex.codecogs.com/svg.latex?%5Csigma):
-<p align="center"><img src="https://latex.codecogs.com/svg.latex?F%28%5Crho%2C%5Csigma%29%20%3D%20%5Cleft%5B%5Ctextrm%7BTr%7D%5Csqrt%7B%5Csqrt%7B%5Crho%7D%5Csigma%5Csqrt%7B%5Crho%7D%7D%5Cright%5D%5E2"/>.</p>
+We measure the reconstruction accuracy by Uhlmann's **fidelity** between the true state <img alt="rho" src="https://render.githubusercontent.com/render/math?math=\rho" /> and the reconstructed state <img alt="sigma" src="https://render.githubusercontent.com/render/math?math=\sigma" />:
+<p align="center"><img alt="fidelity" src="https://render.githubusercontent.com/render/math?math=\displaystyle F(\rho,\sigma)=\left[\textrm{Tr}\sqrt{\sqrt\rho\sigma\sqrt\rho}\right]^2." /></p>
 
 For a quantum process we estimate the fidelity between the process matrices normalized by unity.
 
-According to the quantum state estimation theory the **infidelity distribution** is bounded by the general chi-squared distribution with ![nu](https://latex.codecogs.com/svg.latex?%5Cnu) degrees of freedom [[1]](#ref1):
-<p align="center"><img src="https://latex.codecogs.com/svg.latex?1-F%20%5Csim%20%5Csum_%7Bj%3D1%7D%5E%7B%5Cnu%7D%7Bd_j%20%5Cxi_j%5E2%7D"/>,</p>
+According to the quantum state estimation theory the **infidelity distribution** is bounded by the general chi-squared distribution with <img alt="nu" src="https://render.githubusercontent.com/render/math?math=\nu" /> degrees of freedom [[1]](#ref1):
+<p align="center"><img alt="infidelity as random variable" src="https://render.githubusercontent.com/render/math?math=\displaystyle 1-F\sim\sum_{j=1}^{\nu}{d_j\xi_j^2}," /></p>
 
-where ![d_j](https://latex.codecogs.com/svg.latex?d_j) are positive parameters and ![xi_j](https://latex.codecogs.com/svg.latex?%5Cxi_j) are independent random variables with standard normal distribution. The expected value and variance of infidelity are thus
-<p align="center"><img src="https://latex.codecogs.com/svg.latex?%5Cleft%3C1-F%5Cright%3E%20%3D%20%5Csum_%7Bj%3D1%7D%5E%7B%5Cnu%7D%7Bd_j%7D%2C%20%5Cqquad%20%5Csigma_%7B1-F%7D%5E2%3D2%5Csum_%7Bj%3D1%7D%5E%7B%5Cnu%7D%7Bd_j%5E2%7D"/>.</p>
+where <img alt="d_j" src="https://render.githubusercontent.com/render/math?math=d_j" /> are positive parameters and <img alt="xi_j" src="https://render.githubusercontent.com/render/math?math=\xi_j" /> are independent random variables with standard normal distribution. The expected value and variance of infidelity are thus
+<p align="center"><img alt="infidelity mean and variance" src="https://render.githubusercontent.com/render/math?math=\displaystyle \langle1-F\rangle=\sum_{j=1}^{\nu}{d_j}, \qquad \sigma_{1-F}^2=2\sum_{j=1}^{\nu}{d_j^2}." /></p>
 
-As the infidelity lower bound is inverse proportional to the total sample size ![N](https://latex.codecogs.com/svg.latex?N) over all measurements, we also use the so-called **loss function** independent of the sample size:
-<p align="center"><img src="https://latex.codecogs.com/svg.latex?L%3DN%5Cleft%3C1-F%5Cright%3E"/>.</p>
+As the infidelity lower bound is inverse proportional to the total sample size ![N](https://latex.codecogs.com/svg.latex?N) over all measurements, we also use the so-called **loss function** <img alt="L=N<1-F>" src="https://render.githubusercontent.com/render/math?math=L=N\langle1-F\rangle" /> independent of the sample size.
 
 ## <a name="algorithms">Algorithms</a>
 We use the _maximum likelihood_ parameters estimation (MLE). In the case of quantum process tomography MLE results in the _likelihood equation_ [[1]](#ref1):
