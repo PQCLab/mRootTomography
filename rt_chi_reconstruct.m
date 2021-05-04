@@ -1,4 +1,4 @@
-function [chi, rinfo] = rt_chi_reconstruct(dim, clicks, proto, varargin)
+function [chi, rinfo] = rt_chi_reconstruct(ex, varargin)
 % RT_CHI_RECONSTRUCT Reconstruct the quantum process matrix by the results
 % of a set of complementary measurements
 % Documentation: https://github.com/PQCLab/mRootTomography/blob/master/Documentation.md
@@ -6,11 +6,7 @@ function [chi, rinfo] = rt_chi_reconstruct(dim, clicks, proto, varargin)
 % Author: Boris Bantysh, 2021
 p = inputParser;
 p.KeepUnmatched = true;
-addRequired(p, 'dim');
-addRequired(p, 'clicks');
-addRequired(p, 'proto');
-addOptional(p, 'nshots', 'sum');
-addParameter(p, 'tracePreserving', true);
+addRequired(p, 'ex', @(ex) isa(ex, 'rt_experiment'));
 addParameter(p, 'statType', 'auto');
 addParameter(p, 'rank', 'auto');
 addParameter(p, 'significanceLevel', 0.05);
@@ -20,13 +16,14 @@ addParameter(p, 'LipsConst', 'ntot');
 addParameter(p, 'tol', 1e-8, @(x)x>0);
 addParameter(p, 'maxIter', 1e6, @(x)x>0);
 addParameter(p, 'display', false);
-parse(p, dim, clicks, proto, varargin{:});
+parse(p, ex, varargin{:});
 op = p.Results;
 
+dim = ex.dim;
 if ischar(op.rank) && strcmpi(op.rank, 'auto')
     optim = rt_optimizer('auto_rank');
     optim.set_options('display', op.display, 'sl', op.significanceLevel);
-    [data, data_r] = optim.run(dim^2, @(r) rank_fun(dim, clicks, proto, varargin, r));
+    [data, data_r] = optim.run(dim^2, @(r) rank_fun(ex, varargin, r));
     chi = data.chi;
     rinfo = rmfield(data, 'chi');
     rinfo.data_r = data_r;
@@ -39,51 +36,36 @@ if op.rank < 1 || op.rank > dim^2
     error('RT:RankValue', 'Process matrix rank should be between 1 and squared Hilbert space dimension');
 end
 
-ex = rt_experiment(dim, 'process', op.statType);
-ex.set_data('proto', op.proto, 'clicks', op.clicks);
-if strcmpi(op.nshots, 'sum')
-    op.nshots = cellfun(@(kj) sum(kj), ex.clicks);
-end
-ex.set_data('nshots', op.nshots);
-
-if op.tracePreserving
-    if strcmpi(op.init, 'pinv')
-        p_est = ex.get_field('vec_clicks') ./ ex.get_field('vec_nshots');
-        [~, e] = rt_pinv(cat(3, ex.proto{:}), p_est, op.rank);
-    else
-        e = rt_purify(op.init, op.rank);
-    end
-    e = e / sqrt(trace(e'*e) / dim);
-    e = project_tp(e);
-    if strcmpi(op.LipsConst, 'ntot')
-        op.LipsConst = sum(op.nshots);
-    end
-    optim = rt_optimizer('proximal_ascend');
-    optim.set_options('display', op.display, 'tol', op.tol, 'max_iter', op.maxIter);
-    [e, info] = optim.run(e, ...
-        @(e) ex.get_logL_sq(e), ...                         %% log-likelihood
-        @(e) ex.get_dlogL_sq(e), ...                        %% log-likelihood gradient
-        @(e) project_tp(e / sqrt(trace(e'*e) / dim)), ...   %% proximal operation
-        op.LipsConst ...                                    %% Lipschitz constant
-        );
-    rinfo.optimizer = optim;
-    rinfo.iter = info.iter;
-    chi = e*e';
-    chi = chi / trace(chi) * dim;
+if strcmpi(op.init, 'pinv')
+    p_est = ex.get_field('vec_clicks') ./ ex.get_field('vec_nshots');
+    [~, e] = rt_pinv(ex.get_field('vec_proto'), p_est, op.rank);
 else
-    if strcmp(ex.stat_type, 'poly')
-        warning('RT:PolyStatNonTPProcess', 'Polynomial statistics is incompatible with non trace preserving processes');
-    end
-    [chi, rinfo] = rt_dm_reconstruct(dim^2, ex.clicks, ex.proto, varargin{:}, 'statType', ex.stat_type, 'Rank', op.rank, 'getStats', false);
-    chi = chi * dim;
-    ex = rinfo.experiment;
+    e = rt_purify(op.init, op.rank);
 end
+e = e / sqrt(trace(e'*e) / dim);
+e = project_tp(e);
+
+if strcmpi(op.LipsConst, 'ntot')
+    op.LipsConst = sum(ex.get_field('nshots'));
+end
+
+optim = rt_optimizer('proximal_ascend');
+optim.set_options('display', op.display, 'tol', op.tol, 'max_iter', op.maxIter);
+[e, info] = optim.run(e, ...
+    @(e) ex.logL_sq(e), ...                             %% log-likelihood
+    @(e) ex.dlogL_sq(e), ...                            %% log-likelihood gradient
+    @(e) project_tp(e / sqrt(trace(e'*e) / dim)), ...   %% proximal operation
+    op.LipsConst ...                                    %% Lipschitz constant
+    );
+rinfo.optimizer = optim;
+rinfo.iter = info.iter;
+chi = e*e';
+chi = chi / trace(chi) * dim;
 
 rinfo.rank = op.rank;
-rinfo.experiment = ex;
 if op.getStats
-    rinfo.chi2 = ex.get_chi2_dm(chi);
-    rinfo.df = ex.get_df(op.rank);
+    rinfo.chi2 = ex.chi2_dm(chi);
+    rinfo.df = ex.deg_f_rank(op.rank);
     rinfo.pval = rt_pval(rinfo.chi2, rinfo.df);
 end
 
@@ -100,7 +82,7 @@ function e = project_tp(e)
     e = e / sqrt(trace(e*e') / tr);
 end
 
-function data = rank_fun(dim, clicks, proto, args, r)
-    [chi, data] = rt_chi_reconstruct(dim, clicks, proto, args{:}, 'GetStats', true, 'Rank', r);
+function data = rank_fun(ex, args, r)
+    [chi, data] = rt_chi_reconstruct(ex, args{:}, 'GetStats', true, 'Rank', r);
     data.chi = chi;
 end

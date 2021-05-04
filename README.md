@@ -39,14 +39,14 @@ proto = rt_proto_measurement('mub', 'dim', dim); % Generate measurements operato
 
 The `rt_experiment` class allows one to store and simulate tomography data.
 ```
-clicks = rt_experiment(dim, 'state')...
-    .set_data('proto', proto, 'nshots', nshots)...
-    .simulate(dm_true);
+ex = rt_experiment(dim, 'state'); % Generate experiment instance
+ex.set_data('proto', proto, 'nshots', nshots); % Set measurements protocol
+ex.simulate(dm_true); % Simulate measurement data
 ```
 
 The reconstruction is performed using the `rt_dm_reconstruct` function. By default the state rank is estimated automatically using the adequacy criteria.
 ```
-dm_rec = rt_dm_reconstruct(dim, clicks, proto, nshots, 'Display', 10);
+dm_rec = rt_dm_reconstruct(ex, 'Display', 10);
 Fidelity = rt_fidelity(dm_rec, dm_true);
 fprintf('Fidelity: %.6f\n', Fidelity);
 ```
@@ -63,7 +63,7 @@ Fidelity: 0.996887
 
 Using the fiducial approach and the theoretical infidelity distribution one can use the reconstruction result to estimate the guaranteed reconstruction fidelity. In the following code we estimate the 95%-probability fidelity bound ![F_95](https://latex.codecogs.com/svg.latex?F_%7B95%7D). That means that we get the fidelity ![F_95](https://latex.codecogs.com/svg.latex?F_%7B95%7D) or higher with probability 95%.
 ```
-d = rt_bound(dm_rec, proto, nshots, 'state'); % Calculate variances
+d = rt_bound(dm_rec, ex); % Calculate variances
 Fidelity95 = 1 - rt_gchi2inv(0.95, d); % Get fidelity bound
 fprintf('Fiducial 95%% fidelity bound: %.6f\n', Fidelity95);
 ```
@@ -75,7 +75,7 @@ Fiducial 95% fidelity bound: 0.992890
 
 The following code plots the infidelity distribution based on the true state and shows the fidelity of reconstructed state.
 ```
-d = rt_bound(dm_true, proto, nshots, 'state');
+d = rt_bound(dm_true, ex);
 [p, df] = rt_gchi2pdf([], d);
 figure; hold on; grid on;
 plot(df, p, 'LineWidth', 1.5, 'DisplayName', 'Theory');
@@ -103,17 +103,12 @@ proto = rt_proto_process(proto_prep, proto_meas);
 
 The reconstruction of a quantum process is performed in a very similar way to the quantum state reconstruction.
 ```
-chi = rt_chi_reconstruct(dim, clicks, proto, nshots);
+chi = rt_chi_reconstruct(ex);
 ```
 
 The fidelity bound estimation is also done in a similar way.
 ```
-d = rt_bound(chi, proto, nshots, 'process');
-```
-
-In some functions one may specify `'TracePreserving'` argument equal to `false` to conider a non trace-preserving process.
-```
-chi = rt_chi_reconstruct(dim, clicks, proto, nshots, 'TracePreserving', false);
+d = rt_bound(chi, ex);
 ```
 
 ## <a name="license">License</a>

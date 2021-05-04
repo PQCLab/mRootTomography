@@ -9,5 +9,7 @@ if isempty(x)
     x = xq;
 else
     f = interp1(xq, f, x, 'linear', 'extrap');
+    f(f > 1) = 1;
+    f(f < 0) = 0;
 end
 end

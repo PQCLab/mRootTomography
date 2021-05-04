@@ -58,6 +58,9 @@ classdef rt_optimizer < handle
                 xp = x;
                 x = (1-op.reg_coeff) * fVal(x) + op.reg_coeff * xp;
                 dx = norm(vec(xp-x));
+                if dx > 10 || isnan(dx)
+                    1;
+                end
                 stopIter = (dx < op.tol);
                 if op.display && (mod(j,op.display) == 0 || j == 1 || stopIter)
                     h = rt_fprint(sprintf('Iteration %d \t\t Delta %.4e', j, dx), h);
@@ -114,7 +117,7 @@ classdef rt_optimizer < handle
                 fprintf('=== Automatic rank estimation ===\n');
             end
             pvalRed = false;
-            info = deal(cell(1, rmax));
+            info = cell(1, rmax);
             for r = 1:rmax
                 if op.display
                     fprintf('=> Try rank %d\n', r);

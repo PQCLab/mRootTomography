@@ -3,6 +3,7 @@
 - [Definitions](#definitions)
 - [Algorithms](#algorithms)
 - [Data format](#format)
+- [Measurements statistics](#statistics)
 - Basic functions
 	* [rt_startup](#rt_startup)
 	* [rt_experiment](#rt_experiment)
@@ -58,16 +59,18 @@ where <img alt="d_j" src="https://render.githubusercontent.com/render/math?math=
 As the infidelity lower bound is inverse proportional to the total sample size <img alt="N" src="https://render.githubusercontent.com/render/math?math=N" /> over all measurements, we also use the so-called **loss function** <img alt="L=N*mean(1-F)" src="https://render.githubusercontent.com/render/math?math=L=N\langle1-F\rangle" /> independent of the sample size.
 
 ## <a name="algorithms">Algorithms</a>
-We use the _maximum likelihood_ parameters estimation (MLE). In the case of quantum process tomography MLE results in the _likelihood equation_ [[1]](#ref1):
-<p align="center"><img alt="likelihood equation" src="https://render.githubusercontent.com/render/math?math=\displaystyle I\psi=J(\psi)\psi," /></p>
+We use the _maximum likelihood_ parameters estimation (MLE). In the case of quantum state tomography MLE results in the _likelihood equation_ [[1]](#ref1). Taking the density matrix normalization condition, one obtains
+<p align="center"><img alt="likelihood equation" src="https://render.githubusercontent.com/render/math?math=\displaystyle \mu\psi=J(\psi\psi^\dagger)\psi," /></p>
 
-where
-<p align="center"><img alt="I and J definitions" src="https://render.githubusercontent.com/render/math?math=\displaystyle I=\sum_j{n_jP_j},\qquad J(\psi)=\sum_j{\frac{k_j}{\textrm{Tr}(\psi\psi^\dagger P_j)}P_j}." /></p>
+where <img alt="mu" src="https://render.githubusercontent.com/render/math?math=\mu" /> is a constant (usually equal to the total observed counts <img alt="sum(k_j)" src="https://render.githubusercontent.com/render/math?math=\sum_j{k_j}" />) and
+<p align="center"><img alt="J definitions" src="https://render.githubusercontent.com/render/math?math=\displaystyle J(\rho)=b_0(\rho) I %2B \sum_j{b_j(\rho)P_j}." /></p>
 
-The sums are taken over all measurements operators in all measurements schemes. A solution is obtained by the fixed-point iteration method:
-<p align="center"><img alt="fixed-point iterations" src="https://render.githubusercontent.com/render/math?math=\displaystyle \psi_{i%2B1}=(1-\mu)I^{-1}J(\psi_i)\psi_i %2B \mu\psi_i." /></p>
+The sums are taken over all measurements operators in all measurements schemes. The actual values of <img alt="b_0" src="https://render.githubusercontent.com/render/math?math=b_0" /> and <img alt="b_j" src="https://render.githubusercontent.com/render/math?math=b_j" /> depend on the measurements statistics (see [Measurements statistics](#statistics) section).
 
-Here <img alt="mu" src="https://render.githubusercontent.com/render/math?math=\mu" /> is the regularization parameter. We use Moore-Penrose pseudo-inversion to get <img alt="psi_0" src="https://render.githubusercontent.com/render/math?math=\psi_0" />.
+An equation solution is obtained by the fixed-point iteration method:
+<p align="center"><img alt="fixed-point iterations" src="https://render.githubusercontent.com/render/math?math=\displaystyle \psi_{i%2B1}=(1-a)\mu^{-1}J(\psi\psi^\dagger)\psi_i %2B a\psi_i." /></p>
+
+Here <img alt="a" src="https://render.githubusercontent.com/render/math?math=a" /> is the regularization parameter. We use Moore-Penrose pseudo-inversion to get <img alt="psi_0" src="https://render.githubusercontent.com/render/math?math=\psi_0" />.
 
 For the quantum process tomography we use the _non-convex proximal gradient ascend_ method to ensure the trace preserving constraint (for a non trace preserving processes we use the fixed-point iteration method). In particular, we consider the **Algorithm 1** from Ref. [[2]](#ref2) with Lipschitz constant equal to <img alt="N" src="https://render.githubusercontent.com/render/math?math=N" /> by default. To implement the proximal operator we make use of the fact that for a trace preserving process the block matrix of Kraus operators
 <p align="center"><img alt="fixed-point iterations" src="https://render.githubusercontent.com/render/math?math=\displaystyle Q=\begin{pmatrix}E_1\\E_2\\\vdots\end{pmatrix}." /></p>
@@ -100,7 +103,27 @@ nshots(j) % Number of j-th scheme repetitions
 clicks{j}(k) % Number of k-th outcome observations in j-th scheme
 ```
 
-Other option is to define measurement operators for the process matrix <img alt="chi" src="https://render.githubusercontent.com/render/math?math=\chi" /> and use the same data format as for quantum state tomography.
+Other option is to define measurement operators for the process matrix <img alt="chi" src="https://render.githubusercontent.com/render/math?math=\chi" /> and use the same data format as for quantum state tomography. These operators must satisfy the Born's rule for <img alt="d" src="https://render.githubusercontent.com/render/math?math=d" />-normalized process matrix: <img alt="p_k=trace(chi*P_k)" src="https://render.githubusercontent.com/render/math?math=p_k=\textrm{Tr}(\chi P_k)" />.
+
+## <a name="statistics">Measurements statistics</a>
+
+Class `rt_statistics` is the interface class describing statistics class methods.
+- `k = sample(n, p)` simulates counts `k` of a single measurement with sample size `n` and probability distribution `p`
+- `f = logL(n, k, p)` returns logarithmic likelihood value for point `p`
+- `df = dlogL(n, k, p)` returns logarithmic likelihood derivative in point `p`
+- `mu = logL_mu(n, k)` returns the likelihood equation constant
+- `[b, b0] = logL_jmat(n, k, p)` returns the coefficients of matrix `J` in likelihood equation for point `p`
+- `f = chi2(n, k, p)` returns the chi-squred value for a chi-squared test
+- `nu = deg_f(clicks)` returns the total number of degrees of freedom `nu` by the counts cell array `clicks`
+- `fi = fisher_information(n, p)` returns fisher information `fi` for sample sizes `n` and probabilities `p`
+
+Build-in statistics:
+- `rt_polynomial` &ndash; polynomial (multinomial) statistics; implies that each measurement is a complete POVM.
+- `rt_binomial` &ndash; binomial statistics
+- `rt_poisson` &ndash; poisson statistics
+- `rt_poisson_unity` &ndash; poisson statistics for the case <img alt="sum(n_j*P_j)=C*I" src="https://render.githubusercontent.com/render/math?math=\sum_j{n_jP_j}\propto I" />
+- `rt_asymptotic` &ndash; asymptotic statistics (when <img alt="N->infty" src="https://render.githubusercontent.com/render/math?math=N\rightarrow\infty" />)
+
 
 ## <a name="rt_startup">rt_startup</a>
 Includes the library directories in the search paths. Run before using the library.
@@ -111,12 +134,12 @@ The class for working with the quantum tomography data.
 ### Creating an object
 - `ex = rt_experiment(dim, 'state')` creates an object for a quantum state tomography experiment for the Hilbert space of dimension `dim`
 - `ex = rt_experiment(dim, 'process')` creates an object for a quantum process tomography experiment for the Hilbert space of dimension `dim`
-- `ex = rt_experiment( ___ , stat_type)` specifies the measurements statistics type `stat_type` (default: `'auto'`). Possible values: `'poly'` (polynomial/multinomial statistics), `'poiss'` (Poisson statistics), `'auto'` (tries to automatically determine the statistics type after specifying the measurements protocol).
+- `ex = rt_experiment( ___ , stat)` specifies the measurements statistics type `stat` (default: `'auto'`). Possible values: `'polynomial'`, `'binomial'` `'poisson'`, `'poisson_unity'`, `'asymptotic'`, `'auto'` (tries to automatically determine the statistics type after specifying the measurements protocol) or a statistics type handler (see [Measurements statistics](#statistics) section).
 
 ### Fields
 - `dim` &ndash; Hilbert space dimension
 - `obj_type` &ndash; object type (`'state'` or `'process'`)
-- `stat_type` &ndash; measurements statistics type
+- `stat_pkg` &ndash; measurements statistics
 - `proto` &ndash; measurements operators
 - `nshots` &ndash; measurements repetitions
 - `clicks` &ndash; number of observed measurements outcomes
@@ -135,6 +158,11 @@ Returns the field data by its codename. When extracting the `vec_` field for the
 
 - `data = ex.get_field(code)` returns the field data by its codename `code`
 
+#### stat
+Returns the statistics class instance according to the `stat_pkg` field.
+
+- `s = ex.stat()` returns an instance of statistics class
+
 #### get_probs_dm
 Returns the vector of all-experiments outcome probabilities for the input density matrix. The method also works for a quantum process described by means of the process matrix (see [Definitions](#definitions) section).
 
@@ -146,39 +174,44 @@ Returns the vector of all-experiments outcome probabilities for the input square
 - `p = ex.get_probs_sq(sq, tol)` returns the probabilities vector `p` by the square root `sq` of a density matrix with the tolerance `tol` (default: `0`). Values of `p` lower than `tol` are set to `tol`.
 
 #### simulate
-Simulates the tomography experiment for the input density matrix. The method also works for a quantum process described by means of the process matrix (see [Definitions](#definitions) section). The simulation is performed by the pseudo-random number generation according to the `stat_type` field.
+Simulates the tomography experiment for the input density matrix. The method also works for a quantum process described by means of the process matrix (see [Definitions](#definitions) section). The simulation is performed by the pseudo-random number generation according to the `stat_pkg` field.
 
 - `clicks = ex.simulate(dm)` returns the measurements outcomes cell array `clicks` (see [Data format](#format) section) by the density matrix `dm`
 
-#### sample
-Generate a pseudo-random sample according to the sample size, input probabilities and the `stat_type` field.
+#### logL_dm
+Calculates the logarithmic likelihood function for the input density matrix. The method also works for a quantum process described by means of the process matrix (see [Definitions](#definitions) section). The calculation is based on the data fields `proto`, `nshots` and `clicks` as well as on the statistics field `stat_pkg`.
 
-- `k = ex.sample(p, n)` returns the vector `k` of observed events by the vector `p` of corresponding probabilities and the sample size `n`
+- `f = ex.logL_dm(dm)` returns the value `f` of the logarithmic likelihood function by the density matrix `dm`
 
-#### get_logL_dm
-Calculates the logarithmic likelihood function for the input density matrix. The method also works for a quantum process described by means of the process matrix (see [Definitions](#definitions) section). The calculation is based on the data fields `proto`, `nshots` and `clicks` as well as on the statistics type field `stat_type`.
+#### logL_sq
+Calculates the logarithmic likelihood function for the input square root of the density matrix. The method also works for a quantum process described by means of the square root of the process matrix (see [Definitions](#definitions) section). The calculation is based on the data fields `proto`, `nshots` and `clicks` as well as on the statistics field `stat_pkg`.
 
-- `f = ex.get_logL_dm(dm)` returns the value `f` of the logarithmic likelihood function by the density matrix `dm`
+- `f = ex.logL_sq(sq)` returns the value `f` of the logarithmic likelihood function by the square root `sq` of a density matrix
 
-#### get_logL_sq
-Calculates the logarithmic likelihood function for the input square root of the density matrix. The method also works for a quantum process described by means of the square root of the process matrix (see [Definitions](#definitions) section). The calculation is based on the data fields `proto`, `nshots` and `clicks` as well as on the statistics type field `stat_type`.
+#### dlogL_sq
+Calculates the gradient of the logarithmic likelihood function for the input square root of the density matrix. The method also works for a quantum process described by means of the square root of the process matrix (see [Definitions](#definitions) section). The calculation is based on the data fields `proto`, `nshots` and `clicks` as well as on the statistics field `stat_pkg`.
 
-- `f = ex.get_logL_sq(sq)` returns the value `f` of the logarithmic likelihood function by the square root `sq` of a density matrix
+- `df = ex.dlogL_sq(sq)` returns the matrix `df` of the logarithmic likelihood function gradient by the square root `sq` of a density matrix
 
-#### get_dlogL_sq
-Calculates the gradient of the logarithmic likelihood function for the input square root of the density matrix. The method also works for a quantum process described by means of the square root of the process matrix (see [Definitions](#definitions) section). The calculation is based on the data fields `proto`, `nshots` and `clicks` as well as on the statistics type field `stat_type`.
+#### logL_eq_mu
+Calculates the constant <img alt="mu" src="https://render.githubusercontent.com/render/math?math=\mu" /> in likelihood equation (see [Algorithms](#algorithms) section). The calculation is based on the data fields `nshots` and `clicks` as well as on the statistics field `stat_pkg`.
 
-- `df = ex.get_dlogL_sq(sq)` returns the matrix `df` of the logarithmic likelihood function gradient by the square root `sq` of a density matrix
+- `mu = ex.logL_eq_mu()` returns the constant `mu` in likelihood equation (see [Algorithms](#algorithms) section)
 
-#### get_chi2_dm
-Calculates the chi-squared value (see [chi-squared test](https://en.wikipedia.org/wiki/Chi-squared_test)) for the input density matrix. The method also works for a quantum process described by means of the process matrix (see [Definitions](#definitions) section). The calculation is based on the data fields `proto`, `nshots` and `clicks`.
+#### logL_eq_jmat_dm
+Calculates matrix <img alt="J" src="https://render.githubusercontent.com/render/math?math=J" /> in likelihood equation (see [Algorithms](#algorithms) section) for the specific input density matrix. The calculation is based on the data fields `proto`,  `nshots` and `clicks` as well as on the statistics field `stat_pkg`.
 
-- `f = ex.get_chi2_dm(dm)` returns the value `f` of the chi-squared by the density matrix `dm`
+- `jmat = ex.logL_eq_jmat_dm(dm)` returns the matrix `jmat` from likelihood equation (see [Algorithms](#algorithms) section) for a specific density matrix `dm`
 
-#### get_df
-Calculates the number of degrees of freedom in the [chi-squared test](https://en.wikipedia.org/wiki/Chi-squared_test) taking the rank of the model into account. The value differs for quantum state and quantum process reconstruction (specified by the `obj_type` field) and for different types of measurements statistics (`stat_type` field).
+#### chi2_dm
+Calculates the chi-squared value (see [chi-squared test](https://en.wikipedia.org/wiki/Chi-squared_test)) for the input density matrix. The method also works for a quantum process described by means of the process matrix (see [Definitions](#definitions) section). The calculation is based on the data fields `proto`, `nshots` and `clicks` as well as on the statistics field `stat_pkg`.
 
-- `df = ex.get_df(obj_rank)` returns the number `df` of degrees of freedom for the model rank `obj_rank`
+- `chi2 = ex.chi2_dm(dm)` returns the value `chi2` of the chi-squared test by the density matrix `dm`
+
+#### deg_f_rank
+Calculates the number of degrees of freedom in the [chi-squared test](https://en.wikipedia.org/wiki/Chi-squared_test) taking the rank of the model into account. The value differs for quantum state and quantum process reconstruction (specified by the `obj_type` field) and for different types of measurements statistics (`stat_pkg` field).
+
+- `nu = ex.deg_f_rank(obj_rank)` returns the number `nu` of degrees of freedom for the model rank `obj_rank`
 
 ## <a name="rt_dm_reconstruct">rt_dm_reconstruct</a>
 Reconstruct the quantum state density matrix by the results of a set of complementary measurements. The reconstruction is based on solving the likelihood equation for the density matrix square root (see [Definitions](#definitions) section) using the fixed-point iteration method (see [Algorithms](#algorithms) section).
@@ -186,15 +219,13 @@ Reconstruct the quantum state density matrix by the results of a set of compleme
 By default the function uses the procedure of automatic rank estimation using the adequacy criterion. It probes different values of the density matrix rank from 1 to the Hilbert space dimension until the model becomes statistically significant at some significance level. The procedure is also terminated when the maximum p-value is obtained (see [Algorithms](#algorithms) section).
 
 #### Usage
-- `dm = rt_dm_reconstruct(dim, clicks, proto, nshots)` reconstructs the quantum state in the Hilbert space of dimension `dim` in the form of the density matrix `dm`. The adequacy criterion at the significance level 5% (See [Pearson's chi-squared test](https://en.wikipedia.org/wiki/Pearson%27s_chi-squared_test)) is used to estimate the state rank. Parameters `clicks`, `proto` and `nshots` describe the measurements (see [Data format](#format) section)
-- `dm = rt_dm_reconstruct(dim, clicks, proto)` performs reconstruction for `nshots(j) = sum(clicks{j})`
+- `dm = rt_dm_reconstruct(ex)` reconstructs the quantum state for a tomography experiment defined by the instance `ex` of the [experiment class](#rt_experiment) in the form of the density matrix `dm`. The adequacy criterion at the significance level 5% (See [Pearson's chi-squared test](https://en.wikipedia.org/wiki/Pearson%27s_chi-squared_test)) is used to estimate the state rank.
 - `dm = rt_dm_reconstruct( ___ , 'Rank', r)` reconstructs the state using the rank-`r` model
 - `dm = rt_dm_reconstruct( ___ , 'Rank', 'full')` reconstructs the state using the full-rank model (`r = dim`)
 - `dm = rt_dm_reconstruct( ___ , Name, Value)` specifies additional parameters for reconstruction
 - `[dm, rinfo] = rt_dm_reconstruct( ___ )` also returns additional reconstruction information
 
 #### Name-Value parameters
-- `StatType` &ndash; type of the measurements statistics: `'poly'` for polynomial/multinomial statistics, `'poiss'` for Poisson statistics, and `'auto'` (default) to try to determine statistics type from the measurements operators
 - `Rank` &ndash; rank of the quantum state model, or `'full'` for a full-rank model, or `'auto'` (default) for the automatic rank estimation using adequacy criterion
 - `SignificanceLevel` &ndash; significance level for the automatic rank estimation (default: `0.05`)
 - `GetStats` &ndash; return the chi-squared test information (default: `true` if `Rank = 'auto'`; `false` otherwise)
@@ -209,7 +240,6 @@ By default the function uses the procedure of automatic rank estimation using th
 - `rinfo` &ndash; structure array with the reconstruction information
 	* `rinfo.iter` &ndash; number of optimization iteration
 	* `rinfo.rank` &ndash; the reconstruction model rank
-	* `rinfo.experiment` &ndash; the tomography experiment object handle (see [rt_experiment](#rt_experiment) class)
 	* `rinfo.optimizer` &ndash; the optimizer object handle (see [rt_optimizer](#rt_optimizer) class)
 	* `rinfo.chi2`, `rinfo.df`, `rinfo.pval` &ndash; chi-squared value, the number of model degrees of freedom, and p-value of the statistical chi-squared test (defined if `GetStats = true`)
 	* `rinfo.data_r` &ndash; a cell array with the results obtained by probing models of different ranks until the model is statistically significant (defined if `Rank = 'auto'`)
@@ -220,16 +250,13 @@ Reconstruct the quantum process matrix (see [Definitions](#definitions) section)
 By default the function uses the procedure of automatic rank estimation using the adequacy criterion. It probes different values of the process matrix rank from 1 to the squared Hilbert space dimension until the model becomes statistically significant at some significance level. The procedure is also terminated when the maximum p-value is obtained (see [Algorithms](#algorithms) section).
 
 #### Usage
-- `chi = rt_chi_reconstruct(dim, clicks, proto, nshots)` reconstructs the quantum process in the Hilbert space of dimension `dim` in the form of the process matrix `chi`. The adequacy criterion at the significance level 5% (See [Pearson's chi-squared test](https://en.wikipedia.org/wiki/Pearson%27s_chi-squared_test)) is used to estimate the state rank. Parameters `clicks`, `proto` and `nshots` describe the measurements (see [Data format](#format) section)
-- `chi = rt_chi_reconstruct(dim, clicks, proto)` performs reconstruction for `nshots(j) = sum(clicks{j})`
+- `chi = rt_chi_reconstruct(ex)` reconstructs the quantum process for a tomography experiment defined by the instance `ex` of the [experiment class](#rt_experiment) in the form of the process matrix `chi`. The adequacy criterion at the significance level 5% (See [Pearson's chi-squared test](https://en.wikipedia.org/wiki/Pearson%27s_chi-squared_test)) is used to estimate the state rank.
 - `chi = rt_chi_reconstruct( ___ , 'Rank', r)` reconstructs the process using the rank-`r` model
 - `chi = rt_chi_reconstruct( ___ , 'Rank', 'full')` reconstructs the process using the full-rank model (`r = dim^2`)
 - `chi = rt_chi_reconstruct( ___ , Name, Value)` specifies additional parameters for reconstruction
 - `[chi, rinfo] = rt_chi_reconstruct( ___ )` also returns additional reconstruction information
 
 #### Name-Value parameters
-- `TracePreserving` &ndash; is trace preserving process (default: `true`)
-- `StatType` &ndash; type of the measurements statistics: `'poly'` for polynomial/multinomial statistics, `'poiss'` for Poisson statistics, and `'auto'` (default) to try to determine statistics type from the measurements operators
 - `Rank` &ndash; rank of the quantum process model, or `'full'` for a full-rank model, or `'auto'` (default) for the automatic rank estimation using adequacy criterion
 - `SignificanceLevel` &ndash; significance level for the automatic rank estimation (default: `0.05`)
 - `GetStats` &ndash; return the chi-squared test information (default: `true` if `Rank = 'auto'`; `false` otherwise)
@@ -264,8 +291,8 @@ Calculates the complete Fisher information matrix by the density matrix and the 
 In the case of a quantum process the information matrix has dimension <img alt="2d^2r-by-2d^2r" src="https://render.githubusercontent.com/render/math?math=2d^2r\times2d^2r" /> and contains at least <img alt="r^2" src="https://render.githubusercontent.com/render/math?math=r^2" /> zero eigenvalues.
 
 #### Usage
-- `H = rt_infomatrix(dm, proto, nshots, 'state')` returns the complete Fisher information matrix `H` for the quantum state density matrix `dm` and measurements protocol described by `proto` and `nshots` (see [Data format](#format) section); the purification rank is `rank(dm)`
-- `H = rt_infomatrix(chi, proto, nshots, 'process')` returns the complete Fisher information matrix for the quantum process matrix `chi`
+- `H = rt_infomatrix(dm, ex)` returns the complete Fisher information matrix `H` for the quantum state density matrix `dm` and tomography experiment defined by the instance `ex` of the [experiment class](#rt_experiment); the purification rank is `rank(dm)`
+- `H = rt_infomatrix(chi, ex)` returns the complete Fisher information matrix for the quantum process matrix `chi`
 - `H = rt_infomatrix( ___ , 'Rank', r)` specifies the purification rank `r`
 
 #### Output
@@ -277,9 +304,8 @@ Calculates the lower bound for the variances <img alt="d_j" src="https://render.
 The calculated lower bound sets the vector of infidelity distribution parameters (see [Definitions](#definitions) section).
 
 #### Usage
-- `d = rt_bound(dm, proto, nshots, 'state')` returns the vector `d` of the lower bound of parameters estimation variances for the quantum state density matrix `dm` and measurements protocol described by `proto` and `nshots` (see [Data format](#format) section); the purification rank is `rank(dm)`
-- `d = rt_bound(chi, proto, nshots, 'process')` returns the lower bound for the quantum process matrix `chi`
-- `d = rt_bound(chi, proto, nshots, 'process', 'TracePreserving', false)` considers a non trace-preserving process
+- `d = rt_bound(dm, ex)` returns the vector `d` of the lower bound of parameters estimation variances for the quantum state density matrix `dm` and tomography experiment defined by the instance `ex` of the [experiment class](#rt_experiment); the purification rank is `rank(dm)`
+- `d = rt_bound(chi, ex)` returns the lower bound for the quantum process matrix `chi`
 - `d = rt_bound( ___ , 'Rank', r)` specifies the purification rank `r`
 
 #### Output
@@ -289,9 +315,8 @@ The calculated lower bound sets the vector of infidelity distribution parameters
 Calculates the tomography loss function for a quantum state or a quantum process (see [Definitions](#definitions) section). The result is based on the calculation of the corresponding bounded variances with [rt_bound](#rt_bound).
 
 #### Usage
-- `l = rt_lossfun(dm, proto, 'state')` returns the loss function value `l` for the quantum state density matrix `dm` and measurements operators described by `proto` (see [Data format](#format) section); the purification rank is `rank(dm)`
-- `l = rt_lossfun(chi, proto, 'process')` returns the loss function value for the quantum process matrix `chi`
-- `l = rt_lossfun(chi, proto, 'process', 'TracePreserving', false)` considers a non trace-preserving process
+- `l = rt_lossfun(dm, ex)` returns the loss function value `l` for the quantum state density matrix `dm` and tomography experiment defined by the instance `ex` of the [experiment class](#rt_experiment); the purification rank is `rank(dm)`
+- `l = rt_lossfun(chi, ex)` returns the loss function value for the quantum process matrix `chi`
 - `l = rt_lossfun( ___ , 'Rank', r)` specifies the purification rank `r`
 
 #### Output
@@ -381,9 +406,10 @@ Generates the measurements operators of a specific type in agreement with the [d
 #### Usage
 - `proto = rt_proto_measurement('mub', 'Dim', dim)` returns a mutually-unbiased bases protocol `proto` for the system of dimension `dim` (only 2, 3, 4 and 8 are currently supported)
 - `proto = rt_proto_measurement('tetra')` returns the qubit projective measurements protocol according to the tetrahedron symmetry in the Bloch sphere
-- `proto = rt_proto_measurement('tetra', 'Modifier', 'operator+')` only +1 eigenvectors are considered
-- `proto = rt_proto_measurement('tetra', 'Modifier', 'operator-')` only -1 eigenvectors are considered
+- `proto = rt_proto_measurement('random_bases', 'Dim', dim, 'Num', mb)` returns the projective measurements protocol with `mb` random bases for the system of dimension `dim`
+- `proto = rt_proto_measurement('random_projectors', 'Dim', dim, 'Num', mb)` returns the measurements protocol with `mb` random measurement operators for the system of dimension `dim`
 - `proto = rt_proto_measurement( ___ , 'Modifier', 'operator')` each protocol operator is measured separately
+- `proto = rt_proto_measurement( ___ , 'Modifier', 'operator1')` only first element in each basis is measured (`'operator2'` for the second basis, etc.)
 - `proto = rt_proto_measurement( ___ , 'NSub', n)` considers an `n`-th tensor power of the protocol describing factorized measurements of `n` subsystems
 
 #### Output
@@ -396,6 +422,7 @@ Generates a set of density matrices according to a specific protocol.
 - `proto = rt_proto_preparation('mub', 'Dim', dim)` returns a set of `dim * (dim + 1)` density matrices `proto` of a mutually-unbiased bases for the system of dimension `dim` (only 2, 3, 4 and 8 are currently supported)
 - `proto = rt_proto_preparation('tetra')` returns a set of `4` qubit density matrices according to the tetrahedron symmetry in the Bloch sphere
 - `proto = rt_proto_preparation('octa')` returns a set of `8` qubit density matrices according to the octahedron symmetry in the Bloch sphere
+- `proto = rt_proto_preparation('random', 'Dim', dim, 'Num', mb)` returns a set of `mb` random pure density matrices for the system of dimension `dim`
 - `proto = rt_proto_preparation( ___ , 'NSub', n)` considers an `n`-th tensor power of the protocol describing factorized preparation of `n` subsystems
 
 #### Output
@@ -425,10 +452,10 @@ Divides a total integer sample size equally over a set of measurements.
 Generates the measurement matrix <img alt="B" src="https://render.githubusercontent.com/render/math?math=B" /> from the measurements operators <img alt="P_j" src="https://render.githubusercontent.com/render/math?math=P_j" /> such that the _j_-th element of the column vector <img alt="B*\vec\rho" src="https://render.githubusercontent.com/render/math?math=B\cdot\vec\rho" /> (<img alt="\vec\rho" src="https://render.githubusercontent.com/render/math?math=\vec\rho" /> is the reshaped into column density matrix <img alt="rho" src="https://render.githubusercontent.com/render/math?math=\rho" />) is equal to <img alt="trace(rho*P_k)" src="https://render.githubusercontent.com/render/math?math=\textrm{Tr}(\rho P_k)" />.
 
 #### Usage
-- `B = rt_meas_matrix(P)` returns the measurement matrix `B` by the 3D array with measurements operators along the third dimension
+- `bmat = rt_meas_matrix(P)` returns the measurement matrix `bmat` by the 3D array with measurements operators along the third dimension
 
 #### Output
-- `B` &ndash; measurement matrix
+- `bmat` &ndash; measurement matrix
 
 ### <a name="rt_kron3d">rt_kron3d</a>
 Calculates the generalized Kronecker product of two 3D arrays.
@@ -443,23 +470,24 @@ Calculates the generalized Kronecker product of two 3D arrays.
 Performs the quantum state reconstruction using Moore-Penrose pseudo-inversion.
 
 #### Usage
-- `dm = rt_pinv(P, freq)` returns a full-rank density matrix `dm` by the 3D array `P` with measurements operators along the third dimension and the column-vector `freq` with corresponding observed frequencies
-- `dm = rt_pinv(P, freq, r)` specifies the density matrix rank `r`
-- `[dm, c] = rt_pinv( ___ )` also returns the state square root `c`
+- `dm = rt_pinv(ps, freq)` returns a full-rank density matrix `dm` by the 3D array `ps` with measurements operators along the third dimension and the column-vector `freq` with corresponding observed frequencies
+- `dm = rt_pinv(ps, freq, r)` specifies the density matrix rank `r`
+- `dm = rt_pinv(bmat, ___ )` uses a pre-calculated measurement matrix `bmat`
+- `[dm, psi] = rt_pinv( ___ )` also returns the state square root `psi`
 
 #### Output
 - `dm` &ndash; density matrix
-- `c` &ndash; density matrix square root
+- `psi` &ndash; density matrix square root
 
 ### <a name="rt_purify">rt_purify</a>
 Performs the density matrix purification by taking its square root. If the input matrix has negative eigenvalues it is projected to the set of valid density matrices.
 
 #### Usage
-- `c = rt_purify(dm)` returns the density matrix `dm` square root `c` as a matrix with `rank(dm)` columns
-- `c = rt_purify(dm, r)` specifies purification rank `r`
+- `psi = rt_purify(dm)` returns the density matrix `dm` square root `psi` as a matrix with `rank(dm)` columns
+- `psi = rt_purify(dm, r)` specifies purification rank `r`
 
 #### Output
-- `c` &ndash; density matrix square root
+- `psi` &ndash; density matrix square root
 
 ### <a name="rt_prttrace">rt_prttrace</a>
 Calculates the partial trace of a two-component system density matrix.
@@ -471,13 +499,14 @@ Calculates the partial trace of a two-component system density matrix.
 - `dms` &ndash; subsystem density matrix
 
 ### <a name="rt_to_simplex">rt_to_simplex</a>
-Calculates the projection of a real-valued vector onto standard simplex.
+Calculates the projection of a real-valued vector onto simplex.
 
 #### Usage
 - `pp = rt_to_simplex(p)` returns the projection `pp` of the vector-column `p` onto standard simplex
+- `pp = rt_to_simplex(p, true)` maintains the vector sum such that `sum(pp) == sum(p)`
 
 #### Output
-- `p` &ndash; non negative column-vector
+- `pp` &ndash; non negative column-vector
 
 ### <a name="rt_pval">rt_pval</a>
 Calculates the chi-squared test p-value for a specific number of degrees of freedom. If the case of high chi-squared values the function uses the variable-precision arithmetic.

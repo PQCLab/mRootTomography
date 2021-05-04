@@ -5,6 +5,7 @@ function proto = rt_proto_measurement(ptype, varargin)
 % Author: Boris Bantysh, 2021
 op.dim = nan;
 op.modifier = 'none';
+op.num = nan;
 op.nsub = 1;
 for ja = 1:2:length(varargin)
     op.(lower(varargin{ja})) = varargin{ja + 1};
@@ -22,9 +23,6 @@ switch ptype
                 proto{j}(:,:,k) = mubs(:,k,j) * mubs(:,k,j)';
             end
         end
-        if strcmpi(op.modifier, 'operator')
-            proto = cat(3, proto{:});
-        end
     case 'tetra'
         proto = cell(1,4);
         proto{1}(:,:,1) = [sqrt(3)+1 sqrt(2)*exp(1j*1*pi/4); sqrt(2)*exp(-1j*1*pi/4) sqrt(3)-1]/(2*sqrt(3));
@@ -35,17 +33,32 @@ switch ptype
         proto{3}(:,:,2) = [sqrt(3)-1 sqrt(2)*exp(1j*1*pi/4); sqrt(2)*exp(-1j*1*pi/4) sqrt(3)+1]/(2*sqrt(3));
         proto{4}(:,:,1) = [sqrt(3)-1 sqrt(2)*exp(1j*3*pi/4); sqrt(2)*exp(-1j*3*pi/4) sqrt(3)+1]/(2*sqrt(3));
         proto{4}(:,:,2) = [sqrt(3)+1 sqrt(2)*exp(1j*7*pi/4); sqrt(2)*exp(-1j*7*pi/4) sqrt(3)-1]/(2*sqrt(3));
-        if strcmpi(op.modifier, 'operator')
-            proto = cat(3, proto{:});
-        elseif strcmpi(op.modifier, 'operator+')
-            proto = cellfun(@(pr) pr(:,:,1), proto, 'UniformOutput', false);
-            proto = cat(3, proto{:});
-        elseif strcmpi(op.modifier, 'operator-')
-            proto = cellfun(@(pr) pr(:,:,2), proto, 'UniformOutput', false);
-            proto = cat(3, proto{:});
+    case 'random_bases'
+        proto = cell(1, op.num);
+        for j = 1:op.num
+            proto{j} = zeros(op.dim, op.dim, op.dim);
+            basis = rt_randunitary(op.dim);
+            for k = 1:op.dim
+                proto{j}(:,:,k) = basis(:,k) * basis(:,k)';
+            end
+        end
+    case 'random_projectors'
+        proto = cell(1, op.num);
+        for j = 1:op.num
+            proto{j} = rt_randstate(op.dim, 'rank', 1);
         end
     otherwise
         error('RT:UnknownProto', 'Unknown measurement protocol type `%s`', ptype);
+end
+
+if contains(op.modifier, 'operator')
+    if length(op.modifier) == 8
+        proto = cat(3, proto{:});
+    else
+        idx = fix(str2double(op.modifier(9:end)));
+        proto = cellfun(@(pr) pr(:,:,idx), proto, 'UniformOutput', false);
+        proto = cat(3, proto{:});
+    end
 end
 
 if ~iscell(proto)

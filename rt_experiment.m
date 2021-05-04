@@ -1,4 +1,4 @@
-classdef rt_experiment < handle
+classdef rt_experiment < matlab.mixin.Copyable
 % RT_EXPERIMENT The class for working with the quantum tomography data
 % Documentation: https://github.com/PQCLab/mRootTomography/blob/master/Documentation.md
 % The code is licensed under GPL v3
@@ -6,7 +6,7 @@ classdef rt_experiment < handle
     properties
         dim                 % Hilbert space dimension
         obj_type            % Object type (`'state'` or `'process'`)
-        stat_type           % Measurements statistics type
+        stat_pkg = 'auto'   % Statistics package
         proto = {}          % Measurements operators
         nshots = []         % Measurements repetitions
         clicks = {}         % Number of observed measurements outcomes
@@ -15,17 +15,17 @@ classdef rt_experiment < handle
         vec_clicks = []     % Matrix form of the number of observed measurements outcomes
     end
     methods
-        function obj = rt_experiment(dim, obj_type, stat_type)
+        function obj = rt_experiment(dim, obj_type, stat)
             obj.dim = dim;
-            
-            if nargin < 3
-                stat_type = 'auto';
-            end
-            switch stat_type
-                case {'poly', 'poiss', 'asymp', 'auto'}
-                    obj.stat_type = lower(stat_type);
-                otherwise
-                    error('RT:StatsType', 'Unknown statistics type: `%s`\n Only `poly`, `poiss`, `asymp`, `auto` are available', stat_type);
+            if nargin > 2
+                if ischar(stat)
+                    stat = lower(stat);
+                    st_allowed = [reshape(fieldnames(rt_stat.buildin), 1, []), 'auto'];
+                    if ~any(strcmp(stat, st_allowed))
+                        error('RT:StatsType', 'Unknown statistics type: `%s`\n Available types: %s', stat, strjoin(st_allowed, ', '));
+                    end
+                end
+                obj.stat_pkg = stat;
             end
             switch obj_type
                 case {'state', 'process'}
@@ -55,41 +55,25 @@ classdef rt_experiment < handle
                         obj.proto = mat2cell(obj.proto, dims(1), dims(2), ones(1, dims(3)));
                     end
                     obj.proto = reshape(obj.proto, 1, []);
-                    % Check whether the statistics type is set to `auto`
-                    % and determine statistics according to the protocol
-                    % operators
-                    if strcmp(obj.stat_type, 'auto')
-                        imat = eye(obj.dim);
-                        if all(cellfun(@(pr) size(pr, 3) == 1, obj.proto)) % is poiss
-                            obj.stat_type = 'poiss';
-                        elseif strcmp(obj.obj_type, 'state') && all(cellfun(@(pr) norm(sum(pr, 3) - imat) < 1e-5, obj.proto)) % is state povm
-                            obj.stat_type = 'poly';
-                        elseif strcmp(obj.obj_type, 'process') && all(cellfun(@(pr) norm(rt_prttrace(sum(pr, 3), [obj.dim, obj.dim], 1) - imat) < 1e-5, obj.proto)) % is process povm
-                            obj.stat_type = 'poly';
-                        else
-                            error('RT:StatsTypeAuto', 'Failed to determine statistics type. Please, specify stat_type manually.');
-                        end
-                    end
+                    obj.vec_proto = [];
                     continue;
                 end
                 if strcmp(field, 'clicks')
                     if ~iscell(obj.clicks)
                         obj.clicks = reshape(num2cell(obj.clicks), 1, []);
                     end
+                    obj.vec_clicks = [];
                     continue;
                 end
-            end
-            if ~isempty(obj.nshots)
-                if strcmp(obj.stat_type, 'auto') && any(isinf(obj.nshots))
-                    obj.nshots = ones(size(obj.nshots));
-                    obj.stat_type = 'asymp';
+                if strcmp(field, 'nshots')
+                    obj.vec_nshots = [];
                 end
-                if ~isempty(obj.proto)
-                    if length(obj.nshots) == 1
-                        obj.nshots = rt_nshots_divide(obj.nshots, size(obj.proto, 2));
-                    elseif length(obj.nshots) ~= size(obj.proto, 2)
-                        error('RT:ExpNumberMismatch', 'Length of nshots array does not match length of proto array');
-                    end
+            end
+            if ~isempty(obj.nshots) && ~isempty(obj.proto)
+                if length(obj.nshots) == 1
+                    obj.nshots = rt_nshots_divide(obj.nshots, size(obj.proto, 2));
+                elseif length(obj.nshots) ~= size(obj.proto, 2)
+                    error('RT:ExpNumberMismatch', 'Length of nshots array does not match length of proto array');
                 end
             end
         end
@@ -105,6 +89,29 @@ classdef rt_experiment < handle
             end
             data = obj.(field);
         end
+        function stat = stat(obj)
+            if ischar(obj.stat_pkg)
+                if strcmp(obj.stat_pkg, 'auto')
+                    if any(isinf(obj.nshots))
+                        obj.nshots = ones(size(obj.nshots));
+                        obj.stat_pkg = 'asymptotic';
+                    else
+                        imat = eye(obj.dim);
+                        if all(cellfun(@(pr) size(pr, 3) == 1, obj.proto)) % is binomial
+                            obj.stat_pkg = 'binomial';
+                        elseif strcmp(obj.obj_type, 'state') && all(cellfun(@(pr) norm(sum(pr, 3) - imat) < 1e-5, obj.proto)) % is state povm
+                            obj.stat_pkg = 'polynomial';
+                        elseif strcmp(obj.obj_type, 'process') && all(cellfun(@(pr) norm(rt_prttrace(sum(pr, 3), [obj.dim, obj.dim], 1) - imat) < 1e-5, obj.proto)) % is process povm
+                            obj.stat_pkg = 'polynomial';
+                        else
+                            error('RT:StatsTypeAuto', 'Failed to determine statistics type. Please, specify `stat` manually.');
+                        end
+                    end
+                end
+                obj.stat_pkg = rt_statistics.get(obj.stat_pkg);
+            end
+            stat = obj.stat_pkg;
+        end
         function p = get_probs_dm(obj, dm, tol)
             if nargin < 3
                 tol = 0;
@@ -118,97 +125,64 @@ classdef rt_experiment < handle
             end
             p = obj.get_probs_dm(sq * sq', tol);
         end
+        function [n, k, p] = nkp(obj, dm)
+            n = obj.get_field('vec_nshots');
+            k = obj.get_field('vec_clicks');
+            if nargin > 1
+                p = obj.get_probs_dm(dm, 1e-15);
+            end
+        end
         % ========= Sampling ============
-        function clicks = simulate(obj, dm)
-            clicks = cell(size(obj.proto));
+        function obj = simulate(obj, dm)
+            clk = cell(size(obj.proto));
             for j = 1:numel(obj.proto)
                 probs = abs(rt_meas_matrix(obj.proto{j}) * dm(:));
-                clicks{j} = obj.sample(probs, obj.nshots(j));
+                clk{j} = obj.stat().sample(obj.nshots(j), probs);
             end
-        end
-        function k = sample(obj, p, n)
-            p = p(:);
-            if strcmp(obj.stat_type, 'poly')
-                if abs(sum(p) - 1) > 1e-8
-                    error('RT:PolyDistributionNorm', 'For simulating polynomial statistics probabilities in each measurement should sum to unity');
-                end
-                p = p / sum(p);
-                if n > 1e5 % normal approximation for performance
-                    mu = p*n;
-                    sigma = (-p*p' + diag(p))*n;
-                    [u, d] = eigs(sigma, rank(sigma));
-                    d(d < 0) = 0;
-                    sigma = u * d * u';
-                    k = reshape(round(mvnrnd(mu, sigma)), [], 1);
-                    k(k < 0) = 0;
-                    if sum(k) > n
-                        kmind = find(k == max(k),1);
-                        k(kmind) = k(kmind) - (sum(k) - n);
-                    else
-                        k(end) = n - sum(k(1:(end-1)));
-                    end
-                else
-                    if length(p) == 2
-                        k = zeros(2, 1);
-                        k(1) = binornd(n, p(1));
-                        k(2) = n - k(1);
-                    else
-                        k = mnrnd(n, p);
-                    end
-                end
-            elseif strcmp(obj.stat_type, 'poiss')
-                k = poissrnd(p * n);
-            elseif strcmp(obj.stat_type, 'asymp')
-                k = p * n;
-            end
-            k = k(:);
+            obj.vec_clicks = [];
+            obj.set_data('clicks', clk);
         end
         % ========= Likelihood ============
-        function f = get_logL_dm(obj, dm)
-            p = obj.get_probs_dm(dm, 1e-15);
-            k = obj.get_field('vec_clicks');
-            if strcmp(obj.stat_type, 'poly')
-                f = sum(k .* log(p));
-            elseif strcmp(obj.stat_type, 'poiss')
-                lam = obj.get_field('vec_nshots') .* p;
-                f = sum(k .* log(lam) - lam);
-            end
+        function f = logL_dm(obj, dm)
+            [n, k, p] = obj.nkp(dm);
+            f = obj.stat().logL(n, k, p);
         end
-        function f = get_logL_sq(obj, sq)
-            f = obj.get_logL_dm(sq * sq');
+        function f = logL_sq(obj, sq)
+            f = obj.logL_dm(sq * sq');
         end
-        function df = get_dlogL_sq(obj, sq)
-            p = obj.get_probs_sq(sq, 1e-15);
-            k = obj.get_field('vec_clicks');
+        function df = dlogL_sq(obj, sq)
+            [n, k, p] = obj.nkp(sq * sq');
+            b = obj.stat().dlogL(n, k, p);
             B = obj.get_field('vec_proto');
-            a = k ./ p;
-            if strcmpi(obj.stat_type, 'poly')
-                J = reshape(B' * a, size(sq, 1), []);
-                df = 2 * J * sq;
-            elseif strcmpi(obj.stat_type, 'poiss')
-                n = obj.get_field('vec_nshots');
-                J = reshape(B' * (a - n), size(sq, 1), []);
-                df = 2 * J * sq;
+            df = 2 * reshape(B' * b, size(sq, 1), []) * sq;
+        end
+        function mu = logL_eq_mu(obj)
+            [n, k] = obj.nkp();
+            mu = obj.stat().logL_mu(n, k);
+        end
+        function jmat = logL_eq_jmat_dm(obj, dm)
+            [n, k, p] = obj.nkp(dm);
+            [b, b0] = obj.stat().logL_jmat(n, k, p);
+            B = obj.get_field('vec_proto');
+            jmat = reshape(B' * b, obj.dim, obj.dim);
+            if b0 ~= 0
+                jmat = jmat + b0 * eye(obj.dim);
             end
         end
         % ========= Chi-squared ============
-        function f = get_chi2_dm(obj, dm)
-            n_expected = obj.get_probs_dm(dm) .* obj.get_field('vec_nshots');
-            n_observed = obj.get_field('vec_clicks');
-            f = sum((n_expected-n_observed).^2./n_expected);
+        function chi2 = chi2_dm(obj, dm)
+            [n, k, p] = obj.nkp(dm);
+            chi2 = obj.stat().chi2(n, k, p);
         end
-        function df = get_df(obj, obj_rank)
-            df = length(obj.get_field('vec_clicks'));
-            if strcmpi(obj.stat_type, 'poly')
-                df = df - length(obj.get_field('clicks'));
-            end
+        function nu = deg_f_rank(obj, obj_rank)
+            nu = obj.stat().deg_f(obj.get_field('clicks'));
             if strcmpi(obj.obj_type, 'state')
-                nu = (2*obj.dim - obj_rank)*obj_rank - 1;
+                nu_dm = (2*obj.dim - obj_rank)*obj_rank - 1;
             elseif strcmpi(obj.obj_type, 'process')
                 dim2 = obj.dim^2;
-                nu = (2*dim2 - obj_rank)*obj_rank - dim2;
+                nu_dm = (2*dim2 - obj_rank)*obj_rank - dim2;
             end
-            df = df - nu;
+            nu = nu - nu_dm;
         end
     end
 end

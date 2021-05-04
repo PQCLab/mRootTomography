@@ -1,28 +1,30 @@
+% This script performs 500 tomographic numerical experiments with a single
+% randomly chosen input state. In each experiment the data is simulated and
+% the quantum state is reconstructed using the prior knowledge of the true
+% density matrix rank.
+
 % Experiment conditions
 n_exp = 500;
 dim = 2;
 r_true = 1;
 r_rec = 1;
-nshots = 1e3;
-proto_prep = rt_proto_preparation('tetra');
-proto_meas = rt_proto_measurement('mub', 'dim', dim);
-proto = rt_proto_process(proto_prep, proto_meas);
+nshots = 1e4;
+proto = rt_proto_measurement('mub', 'dim', dim);
+% proto = rt_proto_measurement('mub', 'dim', dim, 'modifier', 'operator'); % Uncomment to test binomial stats
+ex = rt_experiment(dim, 'state').set_data('proto', proto, 'nshots', nshots);
 
 % Generate state
-chi_true = rt_randprocess(dim, 'Rank', r_true, 'TracePreserving', false);
+dm_true = rt_randstate(dim, 'Rank', r_true);
 
 % Conduct experiments
-chi_expected = chi_true;
-Fidelity = zeros(n_exp,1);
-Pval = zeros(n_exp,1);
+Fidelity = zeros(n_exp, 1);
+Pval = zeros(n_exp, 1);
 for je = 1:n_exp
     fprintf('Experiment %d/%d\n', je, n_exp);
-    clicks = rt_experiment(dim, 'process', 'poiss')...
-        .set_data('proto', proto, 'nshots', nshots)...
-        .simulate(chi_true);
+    ex.simulate(dm_true);
     
-    [chi_rec, rinfo] = rt_chi_reconstruct(dim, clicks, proto, nshots, 'Rank', r_rec, 'getStats', true, 'TracePreserving', false, 'StatType', 'poiss');
-    Fidelity(je) = rt_fidelity(chi_rec, chi_expected);
+    [dm_rec, rinfo] = rt_dm_reconstruct(ex, 'Rank', r_rec, 'GetStats', true);
+    Fidelity(je) = rt_fidelity(dm_rec, dm_true);
     Pval(je) = double(rinfo.pval);
 end
 
@@ -38,7 +40,7 @@ legend('show');
 figure;
 hold on; grid on;
 histogram(1 - Fidelity, 'Normalization', 'pdf', 'DisplayName', 'Numerical Experiments');
-d = rt_bound(chi_expected, proto, nshots, 'process', 'TracePreserving', false);
+d = rt_bound(dm_true, ex);
 [p, df] = rt_gchi2pdf([], d);
 plot(df, p, 'LineWidth', 1.5, 'DisplayName', 'Theory');
 xlabel('$$1-F$$', 'Interpreter', 'latex');

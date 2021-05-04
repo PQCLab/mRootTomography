@@ -9,7 +9,7 @@ end
 
 [u, v] = eigs(dm, r);
 v = abs(diag(v));
-v = rt_to_simplex(v);
+v = rt_to_simplex(v, true);
 c = u * diag(sqrt(v));
 end
 
