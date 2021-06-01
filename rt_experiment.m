@@ -20,7 +20,7 @@ classdef rt_experiment < matlab.mixin.Copyable
             if nargin > 2
                 if ischar(stat)
                     stat = lower(stat);
-                    st_allowed = [reshape(fieldnames(rt_stat.buildin), 1, []), 'auto'];
+                    st_allowed = [reshape(fieldnames(rt_statistics.buildin), 1, []), 'auto'];
                     if ~any(strcmp(stat, st_allowed))
                         error('RT:StatsType', 'Unknown statistics type: `%s`\n Available types: %s', stat, strjoin(st_allowed, ', '));
                     end

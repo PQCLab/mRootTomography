@@ -1,6 +1,6 @@
 # Root approach quantum tomography
 
-MATLAB library for the discrete variables quantum state and quantum process tomography using root approach. The library contains a set of tools for quantum state and quantum process reconstruction by the complementary measurements results, estimation of statistical adequacy and theoretical analysis of reconstruction fidelity. Full product documentation is available [here](Documentation.md).
+MATLAB library for the discrete variables quantum state and quantum process tomography using root approach and maximum likelihood estimation. The library contains a set of tools for quantum state and quantum process reconstruction by the complementary measurements results, estimation of statistical adequacy and theoretical analysis of reconstruction fidelity. Full product documentation is available [here](Documentation.md).
 
 - [Getting Started](#start)
 - [Definitions, algorithms and data format](#format)
